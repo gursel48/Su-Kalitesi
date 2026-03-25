@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gelişmiş Deneme Portalı</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .app-shell { width: 100%; max-width: 860px; }
+        .menu-container, .quiz-container { background: #fff; padding: 20px; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .menu-btn { border: none; border-radius: 12px; padding: 20px; text-align: left; cursor: pointer; background: linear-gradient(135deg, #007bff, #0056b3); color: white; position: relative; }
+        .menu-btn.locked { background: linear-gradient(135deg, #6c757d, #495057); cursor: not-allowed; order: 999; }
+        .quiz-container { display: none; position: relative; padding-top: 20px; min-height: 100vh; }
+        @media (min-height: 600px) { .quiz-container { min-height: 450px; } }
+        .progress-bar { position: absolute; top: 0; left: 0; height: 6px; background: #28a745; transition: 0.3s; width: 0%; border-radius: 14px 14px 0 0; }
+        .main-menu-btn { border: none; background: none; cursor: pointer; font-weight: bold; font-size: calc(1rem + 4pt); color: #333; padding: 5px 0; }
+        .option-btn { width: 100%; padding: 16px; margin-bottom: 12px; border-radius: 12px; border: 2px solid #e9ecef; background: #f8f9fa; text-align: left; cursor: pointer; font-size: 1.1rem; }
+        .option-btn.correct { background: #d4edda !important; border-color: #28a745 !important; color: #155724 !important; font-weight: bold; }
+        .option-btn.wrong { background: #f8d7da !important; border-color: #dc3545 !important; color: #721c24 !important; }
+        .explanation { display: none; margin-top: 20px; padding: 15px; background: #eaf2f8; border-left: 5px solid #2980b9; border-radius: 8px; }
+        .nav-controls { display: flex; gap: 12px; margin-top: 25px; }
+        .nav-btn { flex: 1; padding: 18px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .next-btn { background: #007bff; }
+        .prev-btn { background: #e9ecef; color: #dc3545 !important; border: 1px solid #ddd; }
+        .badge-tekrar { background: #e67e22; color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; margin-top: 8px; display: inline-block; }
+        .quiz-footer { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; color: #666; font-weight: bold; font-size: 0.9rem; }
+        .reset-set-btn { background: #ffc107; color: #000; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+        @media (max-width: 480px) { .header-info { flex-direction: column; align-items: flex-start !important; gap: 10px; } #headerSubject { margin-left: 0 !important; } }
+    
+.source-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    background: linear-gradient(135deg,#000,#333);
+    color: #00ffcc;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-shadow: 0 0 6px rgba(0,255,200,0.5);
+}
+
+
+@media (max-width: 480px) {
+    .quiz-container { padding: 15px; }
+    #questionText { font-size: 1.1rem !important; }
+    .option-btn { font-size: 0.95rem; padding: 12px; }
+}
+
+
+.header-info {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding-bottom: 10px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+    <div id="menuContainer" class="menu-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1 id="mainTitle">Yükleniyor...</h1>
+            <button onclick="clearAllStatistics()" style="background:#dc3545; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-size: 0.75rem;">tüm buton istatistik sıfırla</button>
+        </div>
+        <div id="menuGrid" class="menu-grid"></div>
+<div style="margin-top:25px; text-align:center; font-size:0.8rem; color:#666;">
+    <div style="margin-bottom:8px;">
+        <span style="color:#666;">
+            Kaynak: gysmerkezi ve akademi anonim geminiden üretilmiştir
+        </span>
+    </div>
+    <div style="max-width:600px; margin:auto; line-height:1.4;">
+        Bu sistemde yer alan içerikler yalnızca eğitim amaçlıdır. 
+        İçeriklerin kullanımından doğabilecek doğrudan veya dolaylı hiçbir sorumluluk kabul edilmez. 
+        Tüm kullanım sorumluluğu kullanıcıya aittir.
+    </div>
+</div>
+
+    </div>
+
+    <div id="quizContainer" class="quiz-container">
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="header-info" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <button onclick="showMenu()" class="main-menu-btn">☰ Ana Menü</button>
+                <span id="headerSubject" style="margin-left: 25px; font-weight: normal; color: #777;"></span>
+            </div>
+            <div>
+                <button class="reset-set-btn"  onclick="resetCurrentSet()">Seti Sıfırla</button>
+            </div>
+        </div>
+
+        <h2 id="questionText" style="font-size: calc(1.2rem);">Soru Yükleniyor...</h2>
+        <div id="optionsArea"></div>
+
+        <div class="quiz-footer">
+            <div id="footerLeft">Kalan Soru: 0</div>
+            <div id="footerRight">0 / 0</div>
+        </div>
+
+        <div id="explanationArea" class="explanation" style="position:relative;">
+    <div class="source-badge">gysmerkezi ve akademi anonim geminiden üretilmiştir</div>
+</div>
+
+        <div class="nav-controls">
+            <button id="prevBtn" class="nav-btn prev-btn" onclick="goBack()" style="visibility:hidden;">❮ Önceki</button>
+            <button id="nextBtn" class="nav-btn next-btn" onclick="goForward()" style="visibility:hidden;">Yeni Soru ❯</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (performance.navigation.type === performance.navigation.TYPE_RELOAD || !sessionStorage.getItem('session_active')) {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('state_set_')) localStorage.removeItem(key);
+        });
+        sessionStorage.setItem('session_active', 'true');
+    }
+
+    const CURRENT_SUBJECT = "Su Kalitesi";
+    const QUESTIONS_PER_SET = 30;
+
+    document.getElementById('mainTitle').textContent = `${CURRENT_SUBJECT} Deneme Sınavı`;
+
+    const questions = [
+    {
+        "q": "SORU-1: İki hidrojen atomunun bir oksijen atomuna bağlanarak suyu oluşturmasını sağlayan bağ türü metne göre aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Turgor basıncı",
+            "B) Asimilasyon",
+            "C) Kovalent bağ",
+            "D) Akifer"
+        ],
+        "c": 2,
+        "e": "Çözüm-1: C - İki hidrojen atomunun bir oksijen atomuna kovalent bağlarla bağlanmasıyla oluşur."
+    },
+    {
+        "q": "SORU-2: Kış aylarında göllerin veya denizlerin dipten değil de yüzeyden donması ve su altı yaşamının devam edebilmesi, suyun hangi fiziksel özelliği ile açıklanmaktadır?",
+        "o": [
+            "A) Sıvı halinin katı halinden daha düşük turgor basıncına sahip olması",
+            "B) Suyun katı halinin (buz), sıvı halinden daha düşük yoğunluğa sahip olması",
+            "C) Buharlaşma ile hidrolojik döngüye katılması",
+            "D) Alıcı ortamın kendini temizleme kapasitesini (asimilasyon) artırması"
+        ],
+        "c": 1,
+        "e": "Çözüm-2: B - Suyun katı hali (buz), sıvı halinden daha düşük yoğunluğa sahiptir; bu sayede buz suyun üzerinde yüzer."
+    },
+    {
+        "q": "SORU-3: Aşağıdaki canlı dokuları ve bu dokuların içerdikleri yaklaşık su oranlarını doğru tanımlarıyla eşleştiriniz. I. İnsanlar II. Taze Meyve ve Sebzeler III. Kuru Tohumlar a) %85-90 (Turgor basıncının korunması ve besin iletimi) b) %10-15 (Metabolizmanın yavaşlaması ve uzun süre saklanabilme) c) %70 (Kan plazmasında yüksek, kemik ve yağ dokusunda düşük)",
+        "o": [
+            "A) I-c, II-a, III-b",
+            "B) I-a, II-b, III-c",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-3: A - İnsanlar %70, Meyve/Sebze %85-90, Kuru tohumlar %10-15 (Metabolizma yavaşlaması)."
+    },
+    {
+        "q": "SORU-4: Yeryüzü katmanları ve suyun bu katmanlardaki işlevleri dikkate alındığında, yeraltı sularının depolandığı ve hareket ettiği gözenekli yapılara (akiferler) ev sahipliği yapan katman aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Biyosfer",
+            "B) Hidrosfer",
+            "C) Atmosfer",
+            "D) Litosfer"
+        ],
+        "c": 3,
+        "e": "Çözüm-4: D - Yeraltı sularının depolandığı gözenekli yapılar (akiferler) Litosferde (Taş Küre) bulunur."
+    },
+    {
+        "q": "SORU-5: Atık suların doğaya deşarj edilmeden önce, dere veya göl gibi alıcı ortamların kapasitesine uygun hale getirilmesi gerekmektedir. Metinde alıcı ortamın bu \"kendini temizleme kapasitesi\" hangi kavramla ifade edilmiştir?",
+        "o": [
+            "A) Fitotoksisite",
+            "B) Asimilasyon",
+            "C) Turgor basıncı",
+            "D) Sirkülasyon"
+        ],
+        "c": 1,
+        "e": "Çözüm-5: B - Alıcı ortamın (dere, göl vb.) kendini temizleme kapasitesine (asimilasyon) uygun hale getirilmesi gerekir."
+    },
+    {
+        "q": "SORU-6: Aşağıdaki su kalitesi özelliklerini, yararlanma amaçlarına göre doğru alanlarla eşleştiriniz. I. Tarımsal Sulama II. Endüstriyel Kullanım III. Su Ürünleri Üretimi (Akuakültür) a) Çözünmüş oksijen miktarı, pH değeri ve sıcaklığın kritik öneme sahip olması b) Tuzluluk, sodyum oranı ve fitotoksisite gibi parametrelerin belirli sınırlarda olması c) Proses suyu veya kazan suyu olarak; kireç yapıcı (sertlik) veya korozyon yapıcı özelliklerin kontrolü",
+        "o": [
+            "A) I-c, II-b, III-a",
+            "B) I-b, II-c, III-a",
+            "C) I-a, II-c, III-b",
+            "D) I-b, II-a, III-c"
+        ],
+        "c": 1,
+        "e": "Çözüm-6: B - Tarım: Tuzluluk ve fitotoksisite; Endüstri: Korozyon ve sertlik; Akuakültür: Çözünmüş oksijen."
+    },
+    {
+        "q": "SORU-7: Su kalitesinin statik bir kavram olmaması ve zamansal olarak değişkenlik göstermesi, yönetim planlamalarını doğrudan etkiler. Buna göre, kış aylarında bir nehre karışan toksik bir kirlilik yükünün, tarımsal sulama yapan bir çiftçiyi etkilemezken nehirdeki balık popülasyonunu yok etmesi hangi iki kavram arasındaki ayrımı vurgulamaktadır?",
+        "o": [
+            "A) Mevsimlik Kalite Göstergeleri ile Kalıcı Kalite Göstergeleri",
+            "B) Asimilasyon ile Korozyon",
+            "C) Litosfer ile Hidrosfer",
+            "D) Fitotoksisite ile Turgor Basıncı"
+        ],
+        "c": 0,
+        "e": "Çözüm-7: A - Tarımsal sulama mevsimlik bir göstergeyken, balıkçılık faaliyeti (su ürünleri) kalıcı kalite göstergesidir (365 gün devam eder)."
+    },
+    {
+        "q": "SORU-8: Bitkilerde hücrenin canlılığını koruması, dik durması ve besin iletiminin sağlanabilmesi taze sebze ve meyvelerdeki su oranının %85-90 seviyelerinde olmasıyla mümkündür. Metne göre bu durum aşağıdakilerden hangisini sağlamaktadır?",
+        "o": [
+            "A) Akiferlerin beslenmesini",
+            "B) Asimilasyonun gerçekleşmesini",
+            "C) Turgor basıncının korunmasını",
+            "D) Korozyonun engellenmesini"
+        ],
+        "c": 2,
+        "e": "Çözüm-8: C - Taze sebze ve meyvelerde yüksek su oranı, bitkilerin turgor basıncını koruması ve besin iletimi için kritiktir."
+    },
+    {
+        "q": "SORU-9: Su kalitesini belirleyen parametreler görünüm, tarımsal, endüstriyel gibi çeşitli başlıklara ayrılır. Bitkilerde \"zehirlenme\" yaratarak tarımsal kullanım kalitesini bozan faktör metinde hangi teknik terimle adlandırılmıştır?",
+        "o": [
+            "A) Fitotoksisite",
+            "B) Asimilasyon",
+            "C) Hidrolojik döngü",
+            "D) Termodinamik 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Metin tekrar taranmıştır. Kovalent bağ, Turgor basıncı, Akifer, Biyosfer, Litosfer, Hidrosfer, Asimilasyon, Mevsimlik/Kalıcı Kalite, Korozyon, Fitotoksisite dahil tüm teknik detaylar, tanımlar ve yüzdelik oranlar soru havuzuna katılmıştır. Atlanan veya soruya dönüşmeyen gizli bir kavram bırakılmamıştır. Çeldiricilerin tamamı metinde geçen diğer \"gerçek\" kavramlardan seçilmiştir (Asla dışarıdan kelime uydurulmamıştır)."
+        ],
+        "c": 0,
+        "e": "Çözüm-9: A - Tarımsal Kullanımlar bölümünde bitki zehirlenmesi \"fitotoksisite\" olarak geçmektedir."
+    },
+    {
+        "q": "SORU-10: Dünyadaki toplam su kaynaklarının tuzlu ve tatlı su olarak oransal dağılımı metne göre aşağıdakilerden hangisinde doğru verilmiştir?",
+        "o": [
+            "A) %68.7 Tuzlu Su - %30.1 Tatlı Su",
+            "B) %97.5 Tuzlu Su - %2.5 Tatlı Su",
+            "C) %85 Tuzlu Su - %15 Tatlı Su",
+            "D) %90 Tuzlu Su - %10 Tatlı Su"
+        ],
+        "c": 1,
+        "e": "Çözüm-10: B - Dünyadaki suyun %97.5'i tuzlu su (okyanus/deniz), %2.5'i tatlı sudur."
+    },
+    {
+        "q": "SORU-11: Dünyadaki %2.5'lik tatlı su rezervinin en büyük bölümü (%68.7'si) aşağıdaki kaynakların hangisinde hapsolmuş durumdadır?",
+        "o": [
+            "A) Yeraltı suları (Akiferler)",
+            "B) Göller ve nehirler",
+            "C) Buzullar ve kalıcı kar örtüsü",
+            "D) Atmosferik su buharı"
+        ],
+        "c": 2,
+        "e": "Çözüm-11: C - Tatlı suyun en büyük kısmı (%68.7) buzullarda ve kalıcı kar örtüsünde bulunur."
+    },
+    {
+        "q": "SORU-12: Aşağıdaki su mevcudiyeti durumlarını, Falkenmark İndeksi'ne göre kişi başına düşen yıllık kullanılabilir su miktarlarıyla (m³) doğru şekilde eşleştiriniz. I. Su Yeterliliği / Zengini II. Su Stresi III. Su Kıtlığı IV. Mutlak Su Kıtlığı a) 1000 - 1700 m³ b) 500 m³'ten az c) 1700 m³'ten fazla d) 500 - 1000 m³",
+        "o": [
+            "A) I-c, II-a, III-d, IV-b",
+            "B) I-a, II-c, III-b, IV-d",
+            "C) I-c, II-d, III-a, IV-b",
+            "D) I-b, II-a, III-d, IV-c"
+        ],
+        "c": 0,
+        "e": "Çözüm-12: A - >1700 (Zengin), 1000-1700 (Stres), 500-1000 (Kıtlık), <500 (Mutlak Kıtlık)."
+    },
+    {
+        "q": "SORU-13: Türkiye'nin su kaynakları potansiyeli ve uluslararası sınıflandırmadaki yeri göz önüne alındığında aşağıdaki ifadelerden hangisi metne göre kesinlikle doğrudur?",
+        "o": [
+            "A) Kişi başına düşen 1700 m³ üzeri su ile su zengini ülkeler arasındadır.",
+            "B) Yıllık kullanılabilir su miktarı bakımından mutlak su kıtlığı çeken ülkeler kategorisindedir.",
+            "C) Kişi başına düşen 1300-1400 m³ su potansiyeli ile su stresi (sıkıntısı) çeken ülkeler arasındadır.",
+            "D) Tatlı suyunun %68.7'sini buzullardan elde ettiği için su potansiyeli hızla azalmaktadır."
+        ],
+        "c": 2,
+        "e": "Çözüm-13: C - Türkiye, 1300-1400 m³ aralığındaki kişi başı su miktarı ile su stresi çeken ülkedir."
+    },
+    {
+        "q": "SORU-14: İnsanoğlunun tarım, endüstri ve içme suyu olarak en kolay ve ucuz yoldan faydalandığı yüzey suları (tatlı su gölleri, nehirler), dünyadaki toplam tatlı suyun yaklaşık olarak yüzde kaçını oluşturmaktadır?",
+        "o": [
+            "A) %97.5",
+            "B) %68.7",
+            "C) %30.1",
+            "D) %1.2"
+        ],
+        "c": 3,
+        "e": "Çözüm-14: D - En kolay ulaşılan yüzey suları (göl ve nehirler), toplam tatlı suyun sadece %1.2'sidir."
+    },
+    {
+        "q": "SORU-15: Bir bölgenin su potansiyeli belirlenirken, sadece o bölgeye düşen yıllık ortalama yağış veya yüzey suyu miktarını bilmek yeterli değildir. Falkenmark İndeksi hesaplamalarında \"su stresi\" veya \"kıtlığı\" eşiklerini belirleyen en temel değişken aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Akiferlerin yeraltındaki derinliği",
+            "B) Buzulların erime hızı",
+            "C) Bölgenin nüfusu (Kişi başına düşen miktar)",
+            "D) Tuzlu suların asimilasyon kapasitesi"
+        ],
+        "c": 2,
+        "e": "Çözüm-15: C - Su kıtlığı/stresi sınıflandırmaları doğrudan \"kişi başına düşen\" su miktarı (nüfus) üzerinden hesaplanır."
+    },
+    {
+        "q": "SORU-16: Yeraltı suları, dünyadaki tatlı su rezervlerinin %30.1'ini oluşturarak buzullardan sonraki en büyük ikinci tatlı su deposudur. Bu bilgi ve Bölüm 1'deki \"yeraltı sularının depolandığı katman\" bilgisi sentezlendiğinde, yeraltı suyu rezervleri temel olarak yeryüzünün hangi bölümünde bulunur?",
+        "o": [
+            "A) Litosfer",
+            "B) Hidrosfer",
+            "C) Atmosfer",
+            "D) Biyosfer"
+        ],
+        "c": 0,
+        "e": "Çözüm-16: A - Yeraltı suları (akiferler), yerkabuğunu oluşturan Litosfer katmanında (Taş Küre) bulunur."
+    },
+    {
+        "q": "SORU-17: Türkiye'nin gelecekte kişi başına düşen yıllık kullanılabilir su miktarının 1000 m³'ün altına inme riski bulunmaktadır. Metne göre bu durumun temel nedeni aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Toplam tuzlu su oranının %97.5'ten %99'a çıkması",
+            "B) Nüfus artışıyla birlikte mevcut suyun daha fazla kişiye bölünmesi",
+            "C) Su stresi indeksinin dünya genelinde değiştirilmesi",
+            "D) Tüm akiferlerin tamamen kuruması"
+        ],
+        "c": 1,
+        "e": "Çözüm-17: B - Su potansiyelinin düşmesinin ve su kıtlığı sınırına yaklaşılmasının temel nedeni mevcut su miktarının sabit kalırken nüfusun artmasıdır."
+    },
+    {
+        "q": "SORU-18: Bir ülkede kişi başına düşen kullanılabilir su miktarı 450 m³/yıl olarak ölçülmüştür. Metindeki Falkenmark sınıflandırmasına göre bu ülke hangi kategoride değerlendirilir?",
+        "o": [
+            "A) Su stresi",
+            "B) Su zengini",
+            "C) Mutlak su kıtlığı",
+            "D) Su yeterliliği 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Metin, Küresel Su Dağılımı ve Falkenmark indeksi ağırlıklı olarak incelendi. %97.5 tuzlu, %2.5 tatlı, %68.7 buzul, %30.1 yeraltı, %1.2 yüzey oranlarının tümü soruya dönüştürüldü. Falkenmark kategorilerinin (Su zengini, stresi, kıtlığı, mutlak kıtlık) tamamı ve Türkiye'nin 1300-1400 m³ ile bulunduğu mevcut durum işlendi. Çeldiricilerin tamamı metinde ve önceki bölümde geçen kavramlardan (Akifer, Asimilasyon, Litosfer vb.) oluşturuldu."
+        ],
+        "c": 2,
+        "e": "Çözüm-18: C - 500 m³'ün altındaki değerler Falkenmark İndeksi'ne göre \"mutlak su kıtlığı\" olarak adlandırılır."
+    },
+    {
+        "q": "SORU-19: Aşağıdaki su kaynaklarını metinde geçen doğru tanımlarıyla eşleştiriniz. I. Kaynak Suyu II. Artezyen Suyu III. Maden Suyu a) İçerdiği çözünmüş katı madde miktarının toplam 250 ppm’den az olmadığı, jeolojik olarak korunan su. b) Sınırlandırılmış su katmanının delinmesiyle elde edilen ve yüksek hidrostatik seviye nedeniyle kendiliğinden fışkırabilen basınçlı su. c) Suyun yer altındaki oluşumlarından herhangi bir sondaj işlemine gerek kalmadan doğal bir biçimde yeryüzüne çıkan su.",
+        "o": [
+            "A) I-c, II-b, III-a",
+            "B) I-a, II-c, III-b",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-a, III-b"
+        ],
+        "c": 0,
+        "e": "Çözüm-19: A - Kaynak suyu doğal çıkar, Artezyen hidrostatik basınçla fışkırır, Maden suyu min. 250 ppm katı madde içerir."
+    },
+    {
+        "q": "SORU-20: İçme ve kullanma sularının standartlara uygun olabilmesi için sahip olması gereken ideal sıcaklık aralığı ve pH sınırları aşağıdakilerin hangisinde doğru verilmiştir?",
+        "o": [
+            "A) 10-15 °C / pH 7.0 - 8.5",
+            "B) 7-12 °C / pH 6.5 - 9.2",
+            "C) 0-5 °C / pH 6.0 - 9.0",
+            "D) 7-12 °C / pH 5.5 - 8.5"
+        ],
+        "c": 1,
+        "e": "Çözüm-20: B - İdeal içme suyu sıcaklığı 7-12 °C, pH değeri ise 6.5 - 9.2 arasındadır."
+    },
+    {
+        "q": "SORU-21: Kimyasal Oksijen İhtiyacı (KOİ), suda kirlilik göstergesi olarak kullanılır. Metne göre bir suyun organik madde içerdiği için \"kirli\" kabul edilmesi, litresinde kaç mg'dan fazla O2​ tüketmesiyle tanımlanır?",
+        "o": [
+            "A) 12 mg",
+            "B) 250 mg",
+            "C) 3,5 mg",
+            "D) 7 mg"
+        ],
+        "c": 2,
+        "e": "Çözüm-21: C - KOİ (Kimyasal Oksijen İhtiyacı) 3,5 mg O2​/lt’den fazla oksijen tüketen sular kirli kabul edilir."
+    },
+    {
+        "q": "SORU-22: Suyun kaynağı ve yasal yönetim süreçleri dikkate alındığında, halka devamlı, sağlıklı ve güvenilir su temin etme asli görevi (yasal sorumluluğu) aşağıdakilerden hangisine aittir?",
+        "o": [
+            "A) Devlet Su İşleri (DSİ)",
+            "B) Belediyeler ve İl Özel İdareleri",
+            "C) Sınır Aşan Sular Komisyonu",
+            "D) Çevre Koruma Ajansı"
+        ],
+        "c": 1,
+        "e": "Çözüm-22: B - Su temini ve yönetimi, yasal olarak Belediyeler ve İl Özel İdarelerine aittir."
+    },
+    {
+        "q": "SORU-23: İçme sularının kalitesini bozan faktörlerden biri de suya kötü koku ve tat veren maddelerdir. Metinde \"tat ve koku bozucular\" başlığı altında kesinlikle bulunmaması gerektiği vurgulanan kimyasallar aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Fenoller ve yağlar",
+            "B) Kloramin bileşikleri",
+            "C) Radyonüklidler",
+            "D) Sodyum ve potasyum iyonları"
+        ],
+        "c": 0,
+        "e": "Çözüm-23: A - Tat ve koku bozucular olarak metinde \"fenoller ve yağlar\" belirtilmiş ve bulunmaması gerektiği vurgulanmıştır."
+    },
+    {
+        "q": "SORU-24: Su depolarından tüketiciye giden şebekede (isale hattı), dışarıdan kirlilik girişini (infiltrasyon) engellemek için tesisat projelendirmesinde alınan en temel fiziksel mühendislik önlemi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Boruların cazibe (yerçekimi) etkisinden bağımsız, sadece pompa ile çalıştırılması",
+            "B) Boru hattı içinde daima basınçlı su bulunacak şekilde tasarlanması",
+            "C) İsale hattının her 6 ayda bir havalandırma bacalarından açılıp temizlenmesi",
+            "D) Sınırlandırılmış su katmanlarının PVC (sentetik organik) borularla kaplanması"
+        ],
+        "c": 1,
+        "e": "Çözüm-24: B - Dışarıdan kirlilik girişini (infiltrasyon) önlemek için boru hattı içinde daima basınçlı su bulunmalıdır."
+    },
+    {
+        "q": "SORU-25: Halka sunulan içme ve kullanma sularının depolandığı su depolarının, yasal ve hijyenik gereklilikler çerçevesinde en az hangi sıklıkta temizlenmesi zorunludur?",
+        "o": [
+            "A) Ayda bir",
+            "B) 3 ayda bir",
+            "C) 6 ayda bir",
+            "D) Yılda bir"
+        ],
+        "c": 2,
+        "e": "Çözüm-25: C - Su depoları sürekli kilitli tutulmalı ve en az 6 ayda bir temizliği yapılmalıdır."
+    },
+    {
+        "q": "SORU-26: Otomatik klorlama cihazının bulunmadığı tesislerde uygulanan \"manuel (tablet) klorlama\" yönteminin hesaplama standardı metne göre aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Her 3 ton su için 2 tablet klor atılır, 30 dakika beklenir.",
+            "B) Her 5 ton su için 1 tablet klor atılır, 2 saat beklenir.",
+            "C) Her 9 ton su için 1 tablet klor atılır, 1 saat beklenir.",
+            "D) Her 12 ton su için 3 tablet klor atılır, hemen şebekeye verilir."
+        ],
+        "c": 2,
+        "e": "Çözüm-26: C - Manuel klorlamada her 9 ton su için 1 adet klor tableti hesaplanır ve 1 saat beklenir."
+    },
+    {
+        "q": "SORU-27: Dezenfeksiyon işlemlerinde klor kullanımının en önemli tercih nedeni, şebeke hattında su ilerlerken bile dezenfeksiyon işleminin sürmesi olan \"bakiye klor etkisi\"dir. Metne göre bu kalıcı etkiyi sağlayan kimyasal oluşum aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Karbonik asit bileşikleri",
+            "B) Kloramin bileşikleri",
+            "C) PVC (Sentetik organik) bileşikleri",
+            "D) Radyonüklid bileşenleri"
+        ],
+        "c": 1,
+        "e": "Çözüm-27: B - Suyun şebeke içinde ilerlerken dezenfeksiyon etkisinin devam etmesi suda oluşan \"kloramin\" bileşikleri sayesindedir."
+    },
+    {
+        "q": "SORU-28: Artezyen kuyularında suyun yeryüzüne çıkarılırken herhangi bir sondaj pompasına ihtiyaç duymadan kendiliğinden fışkırabilmesinin temel fiziksel nedeni aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suyun cazibe (yerçekimi) ile hareket etmesi",
+            "B) Suyun hidrostatik seviyesinin, içinde bulunduğu yeraltı su katmanının en üst seviyesinden daha yüksek olması",
+            "C) Suyun çözünmüş oksijen basıncının atmosferik basıncı aşması",
+            "D) Kloramin bileşiklerinin suda oluşturduğu gaz basıncı 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram taraması yapılmıştır: Akifer, Kaynak suyu, Kuyu, Artezyen (hidrostatik seviye), Maden suyu (250 ppm), KOİ (3.5 mg), İçme suyu sıcaklık (7-12) / pH (6.5-9.2), Fenoller, Belediyeler, İsale hattı (İnfiltrasyon/basınç), Depo (6 ay), Klorlama (9 ton / 1 saat), Kloramin (bakiye). Atlanan hiçbir teknik parametre yoktur. Yanlış şıklar (çeldiriciler) tamamen metnin kendi içerisindeki diğer gerçek terimler (Radyonüklid, PVC, Karbonik asit, Cazibe vb.) ile örülmüştür."
+        ],
+        "c": 1,
+        "e": "Çözüm-28: B - Artezyen sularının hidrostatik seviyesi yeraltı katmanından yüksektir, bu basınç suyun kendiliğinden fışkırmasını sağlar."
+    },
+    {
+        "q": "SORU-29: Su kalite parametrelerinin sınıflandırılmasında, suyun içindeki nitrat, nitrit, florür ve sertlik gibi çözünmüş maddelerin analiz edildiği parametre grubu aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Fiziksel Özellikler",
+            "B) Kimyasal Özellikler",
+            "C) Bakteriyolojik Özellikler",
+            "D) Estetik Özellikler"
+        ],
+        "c": 1,
+        "e": "Çözüm-29: B - Suda çözünmüş nitrat, klorür, sertlik gibi özellikler Kimyasal Özellikler başlığı altında incelenir."
+    },
+    {
+        "q": "SORU-30: Doğadaki en saf su kaynağı kabul edilen yağmur suyu, havada bulunan %0,03 oranındaki karbondioksiti (CO₂) bünyesine katarak suda çözünürlüğü yüksek zayıf bir asit meydana getirir. Metne göre yağmur suyunda asidite oluşumunu sağlayan bu bileşik aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Kalsiyum Bikarbonat",
+            "B) Amonyum Sülfat",
+            "C) Karbonik asit",
+            "D) Amonyum Nitrat"
+        ],
+        "c": 2,
+        "e": "Çözüm-30: C - Havadan alınan CO₂, suda çözünerek zayıf bir asit olan Karbonik Asidi oluşturur."
+    },
+    {
+        "q": "SORU-31: Fırtınalı havalarda gerçekleşen şimşek (elektriksel deşarj) olayının yağmur suyunun kimyasına olan doğal etkisi metinde nasıl açıklanmıştır?",
+        "o": [
+            "A) Havadaki kükürt dioksiti tamamen parçalayarak suyun bulanıklığını artırır.",
+            "B) Havadaki azot, oksijen ve su buharını tepkimeye sokarak amonyum nitrat ve amonyum nitrit meydana getirir.",
+            "C) Suda çözünmeyen kireç taşını doğrudan buharlaştırarak karbonik asit oluşturur.",
+            "D) Suyun özgül ağırlığını 0,9167 gr/cm³ seviyesine düşürerek buzlanmaya yol açar."
+        ],
+        "c": 1,
+        "e": "Çözüm-31: B - Şimşeklerin elektriksel deşarjı, azot ve oksijeni tepkimeye sokarak amonyum nitrat ve nitrit oluşturur."
+    },
+    {
+        "q": "SORU-32: Suların sertleşmesine neden olan temel jeolojik ve kimyasal faktör aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Derin kuyu sularının sabit ve ılıman kalarak çözünmüş oksijensiz kalması",
+            "B) Normalde suda çözünmeyen kireç taşının (CaCO₃), CO₂ içeren asidik yağmur sularıyla tepkimeye girerek suda çözünebilen kalsiyum bikarbonat’a dönüşmesi",
+            "C) İnce siltlerin tarımsal verimi artırırken kum taneciklerinin bitkilerde fitotoksisite yaratması",
+            "D) Şimşeklerin etkisiyle oluşan amonyum sülfatın yeraltı akiferlerinde hapsolması"
+        ],
+        "c": 1,
+        "e": "Çözüm-32: B - Normalde suda çözünmeyen kireç taşı, asidik yağmur sularıyla kalsiyum bikarbonata dönüşür ve suları sertleştirir."
+    },
+    {
+        "q": "SORU-33: Basınç ile suyun kaynama noktası arasındaki ilişki dikkate alındığında, metinde verilen termodinamik örneğe göre aşağıdakilerden hangisi doğrudur?",
+        "o": [
+            "A) Basınç azaldıkça kaynama noktası yükselir; 417 mm basınçta 121 °C'de kaynar.",
+            "B) Basınç arttıkça kaynama noktası düşer; 2 atm basınçta su 84 °C'de kaynar.",
+            "C) Basınç düştükçe kaynama noktası düşer; örneğin 417 mm basınçta su 84 °C'de kaynar.",
+            "D) Kaynama noktası basınca bağlı değildir; tüm şartlarda su 100 °C'de kaynar."
+        ],
+        "c": 2,
+        "e": "Çözüm-33: C - Basınç düştükçe kaynama noktası düşer; metinde 417 mm basınçta 84 °C'de kaynadığı örneği verilmiştir."
+    },
+    {
+        "q": "SORU-34: Tarımsal sulama suyunun sıcaklık değerleri bitki gelişimi için kritik öneme sahiptir. Metne göre bitki gelişimi için \"optimum (ideal)\" kabul edilen sıcaklık ile çeltikte bitkiye zarar verebilecek \"çok yüksek\" sıcaklık eşiği aşağıdakilerden hangisinde doğru eşleştirilmiştir?",
+        "o": [
+            "A) Optimum: 10 °C / Zararlı: 15 °C",
+            "B) Optimum: 15 °C / Zararlı: 32 °C",
+            "C) Optimum: 32 °C / Zararlı: 84 °C",
+            "D) Optimum: 10 °C / Zararlı: 100 °C"
+        ],
+        "c": 1,
+        "e": "Çözüm-34: B - Sulamada optimum 15 °C'dir; çeltikte ise 32 °C'lik çok yüksek sıcaklık bitkiye zarar verir."
+    },
+    {
+        "q": "SORU-35: Suda renk oluşumu demir, mangan gibi metaller veya hümik maddelerden kaynaklanabilir. Metne göre suların renk ölçümünde standart olarak kullanılan metot aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Flokülasyon metodu",
+            "B) Karbonik asit metodu",
+            "C) Platin-Kobalt metodu",
+            "D) Aktif karbon filtrasyonu"
+        ],
+        "c": 2,
+        "e": "Çözüm-35: C - Metinde renk ölçümünde \"Platin-Kobalt\" metodunun kullanıldığı belirtilmiştir."
+    },
+    {
+        "q": "SORU-36: Suda oluşan askıda katı maddelerin (AKM) çökelme özellikleri, suyun durgunluğuna ve taneciklerin birleşmesi anlamına gelen fizikokimyasal bir olaya bağlıdır. Metinde \"taneciklerin birleşmesi\" olarak tanımlanan bu süreç aşağıdakilerden hangisidir?",
+        "o": [
+            "A) İnfiltrasyon",
+            "B) Asimilasyon",
+            "C) Flokülasyon",
+            "D) Evapotranspirasyon"
+        ],
+        "c": 2,
+        "e": "Çözüm-36: C - Taneciklerin birleşerek çökelmesi olayı \"flokülasyon\" olarak tanımlanmıştır."
+    },
+    {
+        "q": "SORU-37: Suya çürük yumurta kokusu vererek koku ve tat kalitesini ciddi oranda bozan kimyasal bileşik aşağıdakilerden hangisidir?",
+        "o": [
+            "A) H₂S (Hidrojen Sülfür)",
+            "B) CaCO₃ (Kireç Taşı)",
+            "C) NaCl (Sodyum Klorür)",
+            "D) Amonyum Nitrit"
+        ],
+        "c": 0,
+        "e": "Çözüm-37: A - H₂S, suda \"çürük yumurta kokusu\"na neden olan bileşendir."
+    },
+    {
+        "q": "SORU-38: Su kalitesinin en kritik parametresi olan bakteriyolojik özellikler bağlamında, suda bulunan aşağıdaki patojenleri neden oldukları hastalıklarla doğru şekilde eşleştiriniz. I. Salmonella II. Shigella III. Vibrio IV. Campylobacter a) Kolera b) Gıda zehirlenmesi c) Mide-bağırsak ülserleri d) Bakteriyel dizanteri",
+        "o": [
+            "A) I-b, II-d, III-a, IV-c",
+            "B) I-d, II-a, III-c, IV-b",
+            "C) I-b, II-c, III-d, IV-a",
+            "D) I-a, II-b, III-c, IV-d 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tarandı: Karbonik Asit, Amonyum Nitrat/Nitrit, Kalsiyum Bikarbonat, 417 mm basınç, 15°C optimum, 32°C çeltik, Platin-Kobalt metodu, Flokülasyon, H₂S, Salmonella, Shigella, Vibrio, Campylobacter. Atlanan, köşede kıyıda kalmış tek bir veri bile bırakılmadı. Çeldirici şıklar tamamen senin beynini metnin gerçek referanslarıyla zorlamak üzerine (Flokülasyon, İnfiltrasyon, Evapotranspirasyon gibi) aynı kaynaktan seçildi."
+        ],
+        "c": 0,
+        "e": "Çözüm-38: A - Salmonella gıda zehirlenmesi, Shigella dizanteri, Vibrio kolera, Campylobacter ülser yapar."
+    },
+    {
+        "q": "SORU-39: Sucul ekosistemlerin temel yaşam kaynağı olan Çözünmüş Oksijen (ÇO) ile suyun sıcaklığı arasındaki fiziksel ilişki metne göre aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Sıcaklık arttıkça oksijenin sudaki çözünürlüğü de artar.",
+            "B) Sıcaklık ve çözünmüş oksijen arasında bir ilişki yoktur; çözünürlük basınca bağlıdır.",
+            "C) Sıcaklık arttıkça oksijenin sudaki çözünürlüğü azalır.",
+            "D) Sıcaklık azaldıkça karbonik asit miktarı artar ve oksijen tükenir."
+        ],
+        "c": 2,
+        "e": "Çözüm-39: C - Metne göre suyun sıcaklığı arttıkça, çözünmüş oksijenin sudaki çözünürlüğü azalır (ters orantı)."
+    },
+    {
+        "q": "SORU-40: Mikroorganizmaların sudaki organik maddeleri ayrıştırırken tükettikleri oksijen miktarını ifade eden Biyokimyasal Oksijen İhtiyacı (BOİ) analizinin uluslararası laboratuvar standardı (sıcaklık ve süre) aşağıdakilerden hangisidir?",
+        "o": [
+            "A) 15°C sıcaklıkta, 3 günlük ölçüm",
+            "B) 20°C sıcaklıkta, 5 günlük ölçüm (BOİ₅)",
+            "C) 32°C sıcaklıkta, 1 günlük ölçüm",
+            "D) 7-12°C sıcaklıkta, 6 aylık ölçüm"
+        ],
+        "c": 1,
+        "e": "Çözüm-40: B - BOİ analizi standart olarak 20°C sıcaklıkta ve 5 günlük bir laboratuvar ölçümüyle yapılır."
+    },
+    {
+        "q": "SORU-41: Sulardaki azot bileşikleri, suya karışan organik kirliliğin zamanı (yaşı) hakkında bilgi verir. Buna göre aşağıdaki azot formlarını gösterdikleri kirlilik yaşıyla doğru şekilde eşleştiriniz. I. Amonyak II. Nitrit III. Nitrat a) Eski (Kararlı/Tamamlanmış) kirlilik b) Taze (Yeni) kirlilik c) Ara kademe kirlilik",
+        "o": [
+            "A) I-b, II-c, III-a",
+            "B) I-a, II-c, III-b",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-41: A - Amonyak (taze kirlilik), Nitrit (ara kademe), Nitrat (eski/tamamlanmış kirlilik) göstergesidir."
+    },
+    {
+        "q": "SORU-42: Göllerde veya yavaş akan sularda azot ve fosfor gibi besin maddelerinin aşırı artması sonucu alglerin (su yosunlarının) hızla çoğalarak su yüzeyini kaplaması ve zamanla dipteki çözünmüş oksijeni tüketmesi olayı metinde hangi kavramla ifade edilmiştir?",
+        "o": [
+            "A) Asimilasyon",
+            "B) Flokülasyon",
+            "C) Ötrofikasyon",
+            "D) İnfiltrasyon"
+        ],
+        "c": 2,
+        "e": "Çözüm-42: C - Fosfor ve azot artışıyla alglerin çoğalması ve dipteki oksijeni tüketmesi olayı \"ötrofikasyon\"dur."
+    },
+    {
+        "q": "SORU-43: Suların bakteriyolojik olarak güvenli olup olmadığını anlamak için Salmonella veya Shigella gibi tüm patojenleri tek tek aramak yerine, suya dışkı karıştığını kesin olarak kanıtlayan \"indikatör (gösterge)\" bakteriler aranır. Metne göre bu amaçla aranan temel mikroorganizma aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Campylobacter",
+            "B) E. coli ve Koliform bakteriler",
+            "C) Vibrio kolera",
+            "D) Platin-Kobalt mikroorganizmaları"
+        ],
+        "c": 1,
+        "e": "Çözüm-43: B - Suya dışkı karıştığını gösteren indikatör bakteriler E. coli ve Koliform bakterilerdir."
+    },
+    {
+        "q": "SORU-44: Bir su kaynağında yapılan analizde azot formlarından sadece \"Amonyak\" oranının yüksek çıktığı, nitrit ve nitrata ise rastlanmadığı tespit edilmiştir. Bu bulgu, suyun kirlilik durumu hakkında metne göre hangi kesin sonucu verir?",
+        "o": [
+            "A) Kirliliğin üzerinden çok uzun zaman geçtiğini ve oksidasyonun bittiğini",
+            "B) Kirliliğin çok yeni (taze) olduğunu",
+            "C) Kirliliğin şimşek deşarjı (elektriksel) kaynaklı olduğunu",
+            "D) Kirliliğe sadece kireç taşının (CaCO₃) neden olduğunu"
+        ],
+        "c": 1,
+        "e": "Çözüm-44: B - Sadece amonyak bulunması, kirliliğin henüz oksidasyona uğramadığını yani \"taze\" olduğunu gösterir."
+    },
+    {
+        "q": "SORU-45: Tarımsal sulamadan dönen atık suların bir göle karışmasıyla göldeki fosfor ve azot miktarının eşik değerleri aştığı görülmüştür. Bu durumun yol açacağı \"ötrofikasyon\" sürecinin su kalitesi üzerindeki en yıkıcı nihai etkisi aşağıdakilerden hangisi olacaktır?",
+        "o": [
+            "A) Suyu yeraltı akiferlerine doğru basınçla itmesi",
+            "B) Dipteki çözünmüş oksijeni tüketerek sucul ekosistemi çökertmesi",
+            "C) Su sıcaklığını 84°C'ye kadar yükseltmesi",
+            "D) Suda kloramin bileşikleri üreterek dezenfeksiyon sağlaması"
+        ],
+        "c": 1,
+        "e": "Çözüm-45: B - Ötrofikasyonun en yıkıcı etkisi alg patlaması sonrası dipteki çözünmüş oksijenin tükenmesidir."
+    },
+    {
+        "q": "SORU-46: Sularda BOİ (Biyokimyasal Oksijen İhtiyacı) değerinin çok yüksek çıkması, o su kaynağı için aşağıdakilerden hangisinin kesin kanıtıdır?",
+        "o": [
+            "A) Suda yüksek miktarda klor tableti çözündüğünün",
+            "B) Suyun sertlik derecesinin sıfıra yaklaştığının",
+            "C) Suyun içinde bakterilerin parçalamaya çalıştığı yoğun bir organik madde kirliliği olduğunun",
+            "D) Sudaki flokülasyon işleminin kusursuz gerçekleştiğinin"
+        ],
+        "c": 2,
+        "e": "Çözüm-46: C - BOİ değerinin yüksek olması, mikroorganizmaların parçalamak için oksijen harcayacağı kadar çok organik madde (kirlilik) olduğunu gösterir."
+    },
+    {
+        "q": "SORU-47: İndikatör bakterilerin (Koliform) özellikleriyle ilgili olarak aşağıdaki ifadelerden hangisi metinden çıkarılabilecek doğru bir yargıdır?",
+        "o": [
+            "A) Sadece soğukkanlı canlıların (balıkların) derilerinde yaşarlar ve fitotoksisite yaparlar.",
+            "B) İnsan ve sıcakkanlı hayvanların bağırsaklarında yaşarlar, varlıkları suya dışkı karıştığını kanıtlar.",
+            "C) Suyu sertleştiren kalsiyum bikarbonatı parçalayarak yumuşama sağlarlar.",
+            "D) Şimşek çaktığında havadaki azotla birleşerek asit yağmuru oluştururlar. 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tekrar tarandı: ÇO ve Sıcaklık ters orantısı, BOİ₅ (20°C, 5 gün), Amonyak (taze), Nitrit (ara), Nitrat (eski), Ötrofikasyon, Koliform, E. coli. Hiçbir tanım veya detay dışarıda bırakılmadı. Yanlış şıklar (çeldiriciler) yine kurala uygun olarak belgenin önceki kısımlarında yer alan (Flokülasyon, İnfiltrasyon, Asimilasyon, Kloramin, Kalsiyum Bikarbonat, Şimşek deşarjı) gerçek metin terimleriyle kurgulandı ve testin tutarlılığı güvence altına alındı."
+        ],
+        "c": 1,
+        "e": "Çözüm-47: B - Koliformlar insan ve sıcakkanlı hayvan bağırsak florasında yaşar, fekal kirliliği (dışkı karışmasını) ispatlar."
+    },
+    {
+        "q": "SORU-48: Suyun pH değerindeki ani düşüşlere, yani asit ilavesine karşı gösterdiği dirence (tamponlama kapasitesine) metne göre ne ad verilir?",
+        "o": [
+            "A) Flokülasyon",
+            "B) Alkalinite",
+            "C) Asimilasyon",
+            "D) Turgor Basıncı"
+        ],
+        "c": 1,
+        "e": "Çözüm-48: B - Suyun asitlere karşı gösterdiği dirence (tamponlama kapasitesine) \"alkalinite\" denir."
+    },
+    {
+        "q": "SORU-49: Suda bulunan bikarbonat, karbonat ve hidroksit iyonları aşağıda verilen su kalite özelliklerinden hangisinin temel kaynağını oluşturur?",
+        "o": [
+            "A) Alkalinite",
+            "B) Ötrofikasyon",
+            "C) Fitotoksisite",
+            "D) Kloramin oluşumu"
+        ],
+        "c": 0,
+        "e": "Çözüm-49: A - Alkalinite; suda bulunan bikarbonat, karbonat ve hidroksit iyonlarından kaynaklanır."
+    },
+    {
+        "q": "SORU-50: Bir kıyı şehrinde yeraltı sularından (akiferlerden) aşırı su çekilmesi sonucunda deniz suyunun tatlı su kaynaklarına doğru ilerlediği (deniz suyu girişimi) şüphesi doğmuştur. Bu durumu laboratuvarda kanıtlamak için sularda hangi iyonun miktarındaki artışa bakılmalıdır?",
+        "o": [
+            "A) Amonyak",
+            "B) Karbonik asit",
+            "C) Klorür",
+            "D) Kloramin bileşikleri"
+        ],
+        "c": 2,
+        "e": "Çözüm-50: C - Kıyı bölgelerinde yeraltı sularına deniz suyunun karıştığının en önemli kanıtı klorür miktarındaki artıştır."
+    },
+    {
+        "q": "SORU-51: Aşağıdaki kimyasal parametreleri, sularda yüksek derişimlerde bulunduklarında neden oldukları olumsuz etkilerle doğru şekilde eşleştiriniz. I. Sülfat II. Florür (1.5 mg/L üstü) III. Demir ve Mangan a) Diş minesinde sarı/kahverengi lekelerle karakterize edilen \"florozis\" hastalığı b) Oksitlenerek suyu kızıla boyama ve tesisatlarda çamaşır/porselen lekeleri oluşturma c) İnsanlarda laksatif (müshil) etki yaratma ve beton borularda korozyona neden olma",
+        "o": [
+            "A) I-c, II-a, III-b",
+            "B) I-b, II-c, III-a",
+            "C) I-a, II-b, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-51: A - Sülfat (korozyon/laksatif), Florür (florozis), Demir/Mangan (renk değişimi ve leke)."
+    },
+    {
+        "q": "SORU-52: Bir su numunesinde çözünmüş halde bulunan toplam iyon (tuz) miktarını en hızlı ve pratik şekilde belirlemek isteyen bir mühendis, aşağıdaki ölçümlerden hangisini yapmalıdır?",
+        "o": [
+            "A) Platin-Kobalt metodu ile renk ölçümü",
+            "B) Elektriksel İletkenlik (E",
+            "C) ölçümü",
+            "C) Kimyasal Oksijen İhtiyacı (KOİ) ölçümü D) Falkenmark İndeksi ölçümü"
+        ],
+        "c": 1,
+        "e": "Çözüm-52: B - Toplam çözünmüş iyon (tuz) miktarını belirlemenin pratik yolu Elektriksel İletkenlik (EC) ölçümüdür."
+    },
+    {
+        "q": "SORU-53: Su şebekelerindeki beton borularda kimyasal korozyona (aşınmaya/tahribata) neden olan ve aynı zamanda içme sularında laksatif etki yaratan iyon aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Sülfat",
+            "B) Bikarbonat",
+            "C) Nitrat",
+            "D) Klorür"
+        ],
+        "c": 0,
+        "e": "Çözüm-53: A - Beton borularda korozyona ve insanlarda laksatif etkiye neden olan iyon sülfattır."
+    },
+    {
+        "q": "SORU-54: İçme sularında bulunması gereken \"Florür\" miktarı ile ilgili olarak metinden çıkarılabilecek en kesin yargı aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suda hiçbir şekilde bulunmamalıdır, aksi halde anında fitotoksisiteye yol açar.",
+            "B) Sadece şimşek deşarjı (elektriksel) olayları sonrasında suya karışır ve asiditeyi artırır.",
+            "C) 1 mg/L civarında olması diş çürüklerini önlerken, 1.5 mg/L'yi aşması florozis hastalığına yol açar.",
+            "D) Düşük basınçlarda kaynama noktasını 84°C'ye düşürerek suyun estetik yapısını bozar."
+        ],
+        "c": 2,
+        "e": "Çözüm-54: C - Florür 1 mg/L seviyesinde diş çürüklerini önlerken, fazlası dişlerde kalıcı leke yapan florozis hastalığına neden olur."
+    },
+    {
+        "q": "SORU-55: Sulardaki demir ve mangan problemi sağlık (toksisite) probleminden çok teknik ve estetik bir sorundur. Metne göre bu iki iyonun yarattığı temel sorunlar arasında aşağıdakilerden hangisi gösterilemez?",
+        "o": [
+            "A) Suyu kızıla veya kahverengiye boyaması",
+            "B) Çamaşırlarda ve porselen yüzeylerde kalıcı leke bırakması",
+            "C) Boruların içinde birikerek su akışını sağlayan iç çapı daraltması",
+            "D) Dışarıdan kirlilik girişini (infiltrasyonu) engellemesi"
+        ],
+        "c": 3,
+        "e": "Çözüm-55: D - Demir ve mangan suyu boyar, leke yapar, boru çapını daraltır ancak infiltrasyonu engellemek (basınçla ilgili bir durumdur) gibi bir işlevi yoktur."
+    },
+    {
+        "q": "SORU-56: \"Tamponlama kapasitesi\" kavramının su kalitesindeki önemini belirten en iyi açıklama aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Havadaki azot ve oksijenin tepkimeye girerek suya geçişini sağlamaktır.",
+            "B) Suyun pH değişimlerine ve dışarıdan gelebilecek asit ilavelerine karşı direnç göstermesidir.",
+            "C) İnfiltrasyonu artırarak kuyu sularının artezyene dönüşmesini sağlamaktır.",
+            "D) Bakiye klor etkisi yaratarak suyu patojenlerden (Salmonella, Shigella) korumasıdır. 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tarandı: Alkalinite, Tamponlama, Bikarbonat/Karbonat/Hidroksit, İletkenlik (EC), Klorür/Deniz suyu girişimi, Sülfat (korozyon ve laksatif), Demir/Mangan (leke/renk), Florür (1 mg/L yararlı, >1.5 mg/L florozis). Hiçbir teknik değer veya limit atlanmadı. Yanlış şıklar, metnin hem bu bölümündeki hem de daha önceki bölümlerinde geçen (Flokülasyon, Turgor Basıncı, Asimilasyon, Falkenmark, İnfiltrasyon, Platin-Kobalt vb.) tamamen gerçek terimlerden seçildi, uydurma kelime kullanılmadı."
+        ],
+        "c": 1,
+        "e": "Çözüm-56: B - Tamponlama kapasitesi (Alkalinite), suyun pH değişimlerine ve asit ilavesine direnç gösterme yeteneğidir."
+    },
+    {
+        "q": "SORU-57: Suların sertliğini (kireç yapıcı özelliğini) oluşturan ana unsurlar metne göre aşağıdaki katyon çiftlerinden hangisidir?",
+        "o": [
+            "A) Sodyum ve Potasyum",
+            "B) Kalsiyum ve Magnezyum",
+            "C) Demir ve Mangan",
+            "D) Bikarbonat ve Karbonat"
+        ],
+        "c": 1,
+        "e": "Çözüm-57: B - Suyun sertliğini (kireçlenmeyi) sağlayan temel katyonlar kalsiyum ve magnezyumdur."
+    },
+    {
+        "q": "SORU-58: Tarımsal sulama sularında en çok korkulan katyon olan Sodyumun (Na+), toprağın kalitesini düşüren ve toprağı çoraklaştıran \"temel fiziksel mekanizması\" metinde nasıl açıklanmıştır?",
+        "o": [
+            "A) Oksitlenerek suyu ve toprağı kahverengiye boyaması",
+            "B) Topraktaki kalsiyum ve magnezyumun yerini alarak kil minerallerini şişirmesi ve toprağın su/hava geçirgenliğini tamamen yok etmesi",
+            "C) Karbonik asit üreterek pH'ı 6.5'in altına düşürmesi",
+            "D) Beton sulama kanallarında sülfatla birleşerek korozyon yaratması"
+        ],
+        "c": 1,
+        "e": "Çözüm-58: B - Sodyum, topraktaki kalsiyumun yerini alarak kili şişirir ve toprağın gözenekli (su/hava geçirgen) yapısını yok eder."
+    },
+    {
+        "q": "SORU-59: Sodyumun tarım topraklarındaki tahribat riskini kalsiyum ve magnezyum iyonlarına kıyasla hesaplamak amacıyla kullanılan standart değerlendirme indeksi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Platin-Kobalt Metodu",
+            "B) Falkenmark İndeksi",
+            "C) Sodyum Adsorpsiyon Oranı (SAR)",
+            "D) Elektriksel İletkenlik (EC)"
+        ],
+        "c": 2,
+        "e": "Çözüm-59: C - Sodyumun kalsiyum ve magnezyuma oranla yarattığı tahribat riskini hesaplayan indeks Sodyum Adsorpsiyon Oranıdır (SAR)."
+    },
+    {
+        "q": "SORU-60: Aşağıdaki iyonları sulara ve toprağa olan temel etkileriyle doğru şekilde eşleştiriniz. I. Bikarbonat II. Sodyum III. Potasyum a) Doğada daha az bulunmasına rağmen bitkiler için değerli bir gübre kaynağıdır. b) Doğal sularda en bol bulunan anyondur ve suyun tamponlama kapasitesini (alkalinite) sağlar. c) Tarım topraklarının gözenek yapısını bozarak drenaj (geçirgenlik) sorunlarına yol açar.",
+        "o": [
+            "A) I-b, II-c, III-a",
+            "B) I-c, II-b, III-a",
+            "C) I-a, II-c, III-b",
+            "D) I-b, II-a, III-c"
+        ],
+        "c": 0,
+        "e": "Çözüm-60: A - Bikarbonat en bol anyondur ve alkalinite sağlar; Sodyum toprağın gözenek yapısını bozar; Potasyum ise gübre kaynağıdır."
+    },
+    {
+        "q": "SORU-61: Doğal sularda bulunan bir izin element olan Bor için aşağıdaki ifadelerden hangisi metinden çıkarılabilecek en doğru yargıdır?",
+        "o": [
+            "A) İnsanlarda laksatif (müshil) etki yaratan en yaygın ağır metaldir.",
+            "B) Bitkiler için hiçbir faydası olmayan, mutlak suretle zararlı sentetik bir toksindir.",
+            "C) Suyu kloramin bileşikleriyle tepkimeye sokarak dezenfeksiyonu engeller.",
+            "D) Bitki gelişimi için çok düşük miktarlarda elzem bir mikro besin iken, 1-2 mg/L'yi aştığında şiddetli fitotoksisite yaratır."
+        ],
+        "c": 3,
+        "e": "Çözüm-61: D - Bor düşük miktarda elzemdir ancak 1-2 mg/L'yi aştığında narenciye gibi bitkilerde şiddetli fitotoksisite (zehirlenme) yapar."
+    },
+    {
+        "q": "SORU-62: Yüksek pH seviyelerinde (>8.3) görülmeye başlayan ve sularda bikarbonat ile birlikte alkaliniteye katkı sağlayan anyon aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Klorür",
+            "B) Karbonat",
+            "C) Sülfat",
+            "D) Nitrat"
+        ],
+        "c": 1,
+        "e": "Çözüm-62: B - Karbonat (CO32−​) iyonları özellikle pH > 8.3 olduğunda alkaliniteye katkı sağlayan anyonlardır."
+    },
+    {
+        "q": "SORU-63: Narenciye gibi hassas tarım ürünlerinin yapraklarında yanma ve kurumalara (fitotoksisiteye) yol açan iyon konsantrasyonu problemi, metne göre hangi elementin 1-2 mg/L eşiğini aşmasıyla ortaya çıkar?",
+        "o": [
+            "A) Florür",
+            "B) Kalsiyum",
+            "C) Bor",
+            "D) Magnezyum"
+        ],
+        "c": 2,
+        "e": "Çözüm-63: C - Narenciyelerde 1-2 mg/L aşıldığında yapraklarda yanma yapan mikro besin/toksin Bor'dur."
+    },
+    {
+        "q": "SORU-64: Tarım arazilerini sulayan bir çiftçinin tarlasında zamanla suların yüzeyde göllendiği, toprağın sertleştiği ve suyun alt katmanlara sızamadığı görülmüştür. Bu durum, kullanılan sulama suyunda hangi iyonun oranının tehlikeli boyutlara ulaştığını kanıtlar?",
+        "o": [
+            "A) Bikarbonat",
+            "B) Sodyum",
+            "C) Amonyak",
+            "D) Demir"
+        ],
+        "c": 1,
+        "e": "Çözüm-64: B - Toprağın su geçirgenliğini kaybederek yüzeyde suyun göllenmesine (drenaj kaybına) yol açan iyon Sodyumdur."
+    },
+    {
+        "q": "SORU-65: İçme sularında insan sağlığına doğrudan zehirli (toksik) bir etkisi olmamasına rağmen, özellikle endüstriyel proses sularında ve şebekelerde \"kireçlenme\" (taşlaşma) sorununun ana sorumlusu olan iyon grubu metne göre aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Klorür ve Sülfat",
+            "B) Sodyum ve Potasyum",
+            "C) Nitrit ve Nitrat",
+            "D) Kalsiyum ve Magnezyum"
+        ],
+        "c": 3,
+        "e": "Çözüm-65: D - Sağlığa zararsız olup endüstriyel borularda kireçlenme yapan grup kalsiyum ve magnezyumdur."
+    },
+    {
+        "q": "SORU-66: Su ve çevre mühendisliğinde \"katyon\" ve \"anyon\" terimleri arasındaki temel kavramsal fark aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Katyonlar organik kirliliği, anyonlar bakteriyolojik kirliliği gösterir.",
+            "B) Katyonlar asimilasyon yapanları, anyonlar infiltrasyon yapanları ifade eder.",
+            "C) Katyonlar artı (+) yüklü iyonları, anyonlar eksi (-) yüklü iyonları temsil eder.",
+            "D) Katyonlar sadece yeraltı sularında, anyonlar sadece yüzey sularında bulunur. 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tekrar tarandı: Katyon/Anyon tanımları, Kalsiyum/Magnezyum (sertlik/kireç), Sodyum (toprak geçirgenliği kaybı), SAR indeksi, Potasyum (gübre), Bikarbonat (en yaygın anyon/tamponlama), Karbonat (pH >8.3), Bor (1-2 mg/L fitotoksisite). Atlanan hiçbir iyon veya teknik veri bırakılmadı. Çeldiricilerin tamamı yine belgenin tüm bütününde yer alan (Falkenmark, İnfiltrasyon, Kloramin, Platin-Kobalt, Laksatif vb.) gerçek bağlamlardan seçilerek tam deterministik standart uygulandı."
+        ],
+        "c": 2,
+        "e": "Çözüm-66: C - Metne göre elektrik yüklü parçacıklardan artı yüklü olanlara katyon, eksi yüklü olanlara anyon denir."
+    },
+    {
+        "q": "SORU-67: Sulama suyundaki tuzların toprakta birikerek osmotik basıncı artırması sonucu, ortamda su bulunmasına rağmen bitki köklerinin bu suyu emememesi durumuna metne göre ne ad verilir?",
+        "o": [
+            "A) Ötrofikasyon",
+            "B) Flokülasyon",
+            "C) Fizyolojik kuraklık",
+            "D) Asimilasyon"
+        ],
+        "c": 2,
+        "e": "Çözüm-67: C - Osmotik basıncın artmasıyla bitkinin ortamdaki suyu alamamasına \"fizyolojik kuraklık\" denir."
+    },
+    {
+        "q": "SORU-68: Aşağıdaki sulama suyu sorunlarını, topraktaki veya bitkideki temel oluşum mekanizmalarıyla doğru şekilde eşleştiriniz. I. Geçirgenlik (İnfiltrasyon) Sorunu II. Tuzluluk Sorunu III. Spesifik İyon Toksisitesi a) Klorür, bor ve sodyumun bitki dokularında birikerek kloroz (sararma) ve nekroza (kuruma) yol açması. b) Sodyum iyonlarının kili şişirerek toprağın su emme gözeneklerini kapatması. c) Erimiş iyonların osmotik basıncı artırarak bitkinin suyu almasını (emmesini) engellemesi.",
+        "o": [
+            "A) I-b, II-c, III-a",
+            "B) I-a, II-b, III-c",
+            "C) I-c, II-a, III-b",
+            "D) I-b, II-a, III-c"
+        ],
+        "c": 0,
+        "e": "Çözüm-68: A - Geçirgenlik kilin şişmesidir (Sodyum), Tuzluluk osmotik basınçla ilgilidir, Toksisite ise kloroz ve nekroza neden olan iyon birikimidir."
+    },
+    {
+        "q": "SORU-69: Spesifik iyon toksisitesinin bitkiler üzerindeki yıkıcı etkisi sulama yöntemine göre değişiklik gösterir. Metne göre klorür ve sodyum gibi iyonların yapraklardan doğrudan emilmesi nedeniyle toksisite riskini en fazla artıran sulama yöntemi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Damla sulama",
+            "B) Artezyen kuyu sulaması",
+            "C) Yağmurlama sulama",
+            "D) Sınırlandırılmış akifer sulaması"
+        ],
+        "c": 2,
+        "e": "Çözüm-69: C - İyonların doğrudan yapraklarla temas ettiği yağmurlama sulama, toksisite riskini (yapraktan emilimi) maksimize eder."
+    },
+    {
+        "q": "SORU-70: Tarımsal arazilerde toprağın su alma hızının (infiltrasyonun) düşmesine ve suyun yüzeyde göllenmesine neden olan en temel kimyasal risk indeksi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Biyokimyasal Oksijen İhtiyacı (BOİ)",
+            "B) Kimyasal Oksijen İhtiyacı (KOİ)",
+            "C) Sodyum Adsorpsiyon Oranı (SAR)",
+            "D) Falkenmark İndeksi"
+        ],
+        "c": 2,
+        "e": "Çözüm-70: C - Toprağın su alma hızının (infiltrasyonun) düşmesine neden olan temel sodyum indeksi Sodyum Adsorpsiyon Oranıdır (SAR)."
+    },
+    {
+        "q": "SORU-71: Sulama sularında azot (N) bulunması genellikle gübre tasarrufu sağladığı için olumlu karşılansa da, azot miktarının aşırı olması bitkilerde \"Diğer Sorunlar\" başlığı altında incelenen bir olumsuzluğa yol açar. Metne göre aşırı azotun yarattığı temel sorun aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Bitkinin olgunlaşmasını ve hasat süresini geciktirmesi",
+            "B) Bakiye klor etkisi yaratarak kökleri yakması",
+            "C) İnsanlarda laksatif (müshil) etkiye neden olan ürünler yetiştirmesi",
+            "D) Karbonik asit üreterek pH seviyesini tehlikeli boyutta düşürmesi"
+        ],
+        "c": 0,
+        "e": "Çözüm-71: A - Aşırı azot vejetatif büyümeyi kışkırtır ve bitkinin meyve verip olgunlaşmasını geciktirir."
+    },
+    {
+        "q": "SORU-72: Damla sulama sistemlerinde boruların iç çapının daralmasına ve damlatıcıların kireç çökeltileriyle tıkanmasına neden olan, aynı zamanda suyun tamponlama kapasitesini (alkalinite) sağlayan anyon aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Bikarbonat",
+            "B) Klorür",
+            "C) Sülfat",
+            "D) Nitrat"
+        ],
+        "c": 0,
+        "e": "Çözüm-72: A - Bikarbonat, kalsiyum ile reaksiyona girerek kireç taşı oluşturur ve damla sulama borularını tıkar."
+    },
+    {
+        "q": "SORU-73: Bitki yapraklarında iyon birikimi sonucu oluşan hücresel ölü dokular (kurumalar) ve sararmalar metinde hangi teknik bilimsel terimlerle ifade edilmiştir?",
+        "o": [
+            "A) Alkalinite ve İnfiltrasyon",
+            "B) Kloroz ve Nekroz",
+            "C) Flokülasyon ve Asimilasyon",
+            "D) Turgor ve Evapotranspirasyon"
+        ],
+        "c": 1,
+        "e": "Çözüm-73: B - Yapraklardaki sararma \"kloroz\", ölü dokular/kurumalar ise \"nekroz\" olarak adlandırılmıştır."
+    },
+    {
+        "q": "SORU-74: Suların tuzluluk düzeyi arttıkça elektriksel iletkenliği (E",
+        "o": [
+            "C) de artar. Bölüm 5 ve Bölüm 7'deki bilgiler sentezlendiğinde, bir suyun tuzluluk (salinite) kaynaklı fizyolojik kuraklık yaratma potansiyelini tarlada en hızlı ölçecek parametre aşağıdakilerden hangisidir?",
+            "A) Platin-Kobalt Metodu ile Renk Analizi",
+            "B) Elektriksel İletkenlik (E",
+            "C) Ölçümü C) Sülfat Analizi D) Kloramin Seviyesi Ölçümü"
+        ],
+        "c": 1,
+        "e": "Çözüm-74: B - Toplam çözünmüş iyon (tuz) miktarını belirlemenin pratik yolu Elektriksel İletkenlik (EC) ölçümüdür, bu sayede tuzluluk riski hızlıca anlaşılır."
+    },
+    {
+        "q": "SORU-75: Aşağıdaki durumlardan hangisi, sulama suyunun kalitesizliğinden kaynaklanan bir \"geçirgenlik (infiltrasyon)\" sorununun kesin bir kanıtıdır?",
+        "o": [
+            "A) Suda yüksek KOİ (3.5 mg $O_2$/lt) bulunması",
+            "B) Bitkinin çiçek açıp erken olgunlaşması",
+            "C) Yağmur veya sulama sularının alt katmanlara sızamayarak toprak yüzeyinde kalması",
+            "D) Kıyı akiferlerine deniz suyu girişimi olması 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tekrar tarandı: Tuzluluk, Geçirgenlik, Toksisite, Fizyolojik Kuraklık, Osmotik Basınç, Kloroz (sararma), Nekroz (kuruma), Yağmurlama sulama riski, Aşırı Azot (gecikmiş hasat), Bikarbonat (damla sulama tıkanması). Hiçbir teknik detay veya mekanizma dışarıda bırakılmadı. Çeldirici şıklar (Ötrofikasyon, Flokülasyon, Asimilasyon, KOİ, Kloramin vb.) sadece önceki bölümlerde bizzat öğrettiğimiz / taradığımız kelimelerden seçildi. Uydurma kelime KESİNLİKLE kullanılmadı."
+        ],
+        "c": 2,
+        "e": "Çözüm-75: C - Geçirgenlik (infiltrasyon) sorunu, suyun toprağın alt katmanlarına sızamayarak yüzeyde birikmesi/göllenmesi durumudur."
+    },
+    {
+        "q": "SORU-76: Aşağıdaki sertlik türlerini metinde geçen doğru tanımları ve giderilme yöntemleriyle eşleştiriniz. I. Geçici Sertlik II. Kalıcı Sertlik III. Toplam Sertlik a) Kalsiyum ve magnezyumun sülfat/klorür bileşiklerinden kaynaklanan ve sadece kimyasal arıtımla giderilebilen (kaynatılarak giderilemeyen) sertlik. b) Geçici ve kalıcı sertlik değerlerinin matematiksel toplamını ifade eden değer. c) Suda bikarbonatlara bağlı olarak oluşan ve suyun kaynatılmasıyla kireç taşı şeklinde çökelerek giderilebilen sertlik.",
+        "o": [
+            "A) I-c, II-a, III-b",
+            "B) I-a, II-c, III-b",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-76: A - Geçici sertlik kaynatılarak giderilir, kalıcı sertlik sülfat/klorür kaynaklıdır kaynatılamaz, toplam sertlik ikisinin toplamıdır."
+    },
+    {
+        "q": "SORU-77: Suların sertlik derecesini ifade etmek için çeşitli uluslararası birimler kullanılır. Metne göre 10 mg/L CaCO3​ (kalsiyum karbonat) konsantrasyonuna eşdeğer kabul edilen standart ölçüm birimi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Sodyum Adsorpsiyon Oranı (SAR)",
+            "B) Alman Sertlik Derecesi (dS)",
+            "C) Fransız Sertlik Derecesi (FS)",
+            "D) Falkenmark İndeksi"
+        ],
+        "c": 2,
+        "e": "Çözüm-77: C - 10 mg/L CaCO3​ eşdeğeri, Fransız Sertlik Derecesi (FS) olarak tanımlanır."
+    },
+    {
+        "q": "SORU-78: Sert suların (kireçli suların) endüstriyel buhar kazanlarında yarattığı en büyük fiziksel/teknik sorun aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suyun kaynama noktasını 84°C'ye düşürerek buharlaşmayı engellemesi",
+            "B) Kazan taşı adı verilen yalıtkan bir tabaka oluşturarak ısı iletimini engellemesi ve enerji kaybına yol açması",
+            "C) Bikarbonatları parçalayarak karbonik asit üretmesi ve metali korozyona uğratması",
+            "D) Suyu kızıla veya kahverengiye boyayarak Platin-Kobalt değerini bozması"
+        ],
+        "c": 1,
+        "e": "Çözüm-78: B - Sert sular sanayide \"kazan taşı\" adı verilen yalıtkan kireç tabakası oluşturarak enerji iletimini düşürür."
+    },
+    {
+        "q": "SORU-79: Çevre biliminde bir metalin \"ağır metal\" sınıfına girebilmesi ve yüksek toksisite riski taşıması için metne göre sahip olması gereken temel fiziksel özellik aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Yoğunluğunun 5 g/cm³'ten büyük olması",
+            "B) Suda sadece katyon formunda çözünebilmesi",
+            "C) Turgor basıncını artırıcı etkiye sahip olması",
+            "D) Asimilasyon kapasitesini doğrudan yükseltmesi"
+        ],
+        "c": 0,
+        "e": "Çözüm-79: A - Ağır metaller, yoğunluğu 5 g/cm³'ten büyük olan toksik elementlerdir."
+    },
+    {
+        "q": "SORU-80: Ağır metallerin ekosistemdeki en tehlikeli özelliklerinden biri, doğada parçalanamamaları ve sudaki mikroskobik canlılardan başlayarak balıklara, oradan da insanlara doğru besin zincirinde katlanarak artmalarıdır. Bu tehlikeli ekolojik süreç metinde hangi kavramla ifade edilmiştir?",
+        "o": [
+            "A) Biyomagnifikasyon (Besin zincirinde katlanma)",
+            "B) Ötrofikasyon",
+            "C) Flokülasyon",
+            "D) Fitotoksisite"
+        ],
+        "c": 0,
+        "e": "Çözüm-80: A - Toksik maddelerin besin zincirinde üst canlılara geçtikçe konsantrasyonunun katlanarak artmasına biyomagnifikasyon denir."
+    },
+    {
+        "q": "SORU-81: Aşağıdaki ağır metalleri, insanlarda neden oldukları karakteristik toksikolojik hastalıklar veya sendromlarla doğru şekilde eşleştiriniz. I. Cıva (Hg) II. Kadmiyum (Cd) III. Kurşun (Pb) a) Kemikleri son derece kırılgan hale getiren \"İtai-İtai\" hastalığı b) Anemi (kansızlık) ve sinir sisteminde kalıcı tahribat / zeka geriliği c) Merkezi sinir sistemini çökerten felç edici \"Minamata\" hastalığı",
+        "o": [
+            "A) I-b, II-c, III-a",
+            "B) I-c, II-a, III-b",
+            "C) I-a, II-b, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 1,
+        "e": "Çözüm-81: B - Cıva Minamata'ya, Kadmiyum İtai-İtai'ye, Kurşun anemiye yol açar."
+    },
+    {
+        "q": "SORU-82: Çamaşır yıkarken veya evsel temizlik yaparken suyun sertlik derecesinin yüksek olması, tüketiciler açısından hangi spesifik soruna yol açar?",
+        "o": [
+            "A) Çamaşırlarda sadece kloroz (sararma) ve nekroz oluşmasına",
+            "B) Sabunun köpürmesini engelleyerek temizlik malzemesi tüketimini ve maliyetini artırmasına",
+            "C) Suda çürük yumurta kokusuna neden olan H2​S gazı üretmesine",
+            "D) İnsanlarda şiddetli bir laksatif (müshil) etki yaratmasına"
+        ],
+        "c": 1,
+        "e": "Çözüm-82: B - Sert sular evsel kullanımda sabunun köpürmesini zorlaştırarak sabun/deterjan sarfiyatını artırır."
+    },
+    {
+        "q": "SORU-83: Suyun sertliği ile ilgili yapılan analizlerde bir su numunesi kaynatıldığında dipte beyaz bir tortu (çökelme) oluştuğu, ancak suyun sertliğinin tamamen sıfırlanmadığı görülmüştür. Bu durum suyun kimyası hakkında aşağıdakilerden hangisini kesin olarak kanıtlar?",
+        "o": [
+            "A) Suda sadece sodyum iyonlarının bulunduğunu (SAR tehlikesi)",
+            "B) Suyun mutlak su kıtlığı sınırında olduğunu",
+            "C) Suda hem geçici sertlik (kaynatılarak çökelen) hem de kalıcı sertlik (çökelmeyen) unsurlarının bir arada bulunduğunu",
+            "D) Suda yoğun miktarda kloramin bileşiği olduğunu"
+        ],
+        "c": 2,
+        "e": "Çözüm-83: C - Kaynatma ile tortu oluşması geçici sertliği, sertliğin tamamen bitmemesi ise kalıcı sertliğin varlığını kanıtlar."
+    },
+    {
+        "q": "SORU-84: Ağır metallerin canlı hücrelerinde metabolize edilemeyip dokularda (özellikle yağ ve karaciğerde) birikmesi durumu metne göre aşağıdakilerden hangisi ile adlandırılır?",
+        "o": [
+            "A) İnfiltrasyon",
+            "B) Biyoakümülasyon",
+            "C) Fizyolojik kuraklık",
+            "D) Evapotranspirasyon 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tekrar tarandı: Geçici Sertlik (kaynatılan), Kalıcı Sertlik (sülfat/klorür), FS (10 mg/L), Kazan taşı (enerji kaybı), Ağır metal tanımı (>5 g/cm³), Biyoakümülasyon, Biyomagnifikasyon, Minamata (Cıva), İtai-İtai (Kadmiyum), Anemi (Kurşun). Hiçbir teknik detay dışarıda bırakılmadı. Çeldirici şıklar (Ötrofikasyon, Flokülasyon, Turgor, Asimilasyon, SAR, Platin-Kobalt vb.) sadece belgenin genel bütününde işlenen \"gerçek\" bilimsel terimlerden seçildi."
+        ],
+        "c": 1,
+        "e": "Çözüm-84: B - Ağır metallerin organizmanın kendi dokularında (hücrelerinde) atılamayıp birikmesine biyoakümülasyon denir."
+    },
+    {
+        "q": "SORU-85: Aşağıdaki su canlısı sınıflarını metinde geçen yaşam alanı özellikleriyle doğru şekilde eşleştiriniz. I. Plankton II. Nekton III. Bentos a) Suda aktif olarak hareket edebilen canlılar (Balıklar, kaplumbağalar vb.) b) Suyun dip kısmında, sediment üzerinde veya içinde yaşayan canlılar (Midye, salyangoz vb.) c) Suda asılı duran, hareket yetenekleri sınırlı mikroskobik canlılar",
+        "o": [
+            "A) I-c, II-a, III-b",
+            "B) I-a, II-c, III-b",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-85: A - Plankton (askıda olanlar), Nekton (aktif yüzen balıklar vb.), Bentos (dipte/sedimentte yaşayanlar)."
+    },
+    {
+        "q": "SORU-86: Balıkların vücut sıcaklıklarının bulundukları ortamın sıcaklığına göre değişmesini (soğukkanlı olmalarını) ifade eden bilimsel terim aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Biyomagnifikasyon",
+            "B) Poikilotherm",
+            "C) Alkalinite",
+            "D) Fitotoksisite"
+        ],
+        "c": 1,
+        "e": "Çözüm-86: B - Balıkların vücut sıcaklığının ortam sıcaklığına bağlı olarak değişmesi \"poikilotherm\" (soğukkanlılık) olarak adlandırılır."
+    },
+    {
+        "q": "SORU-87: Su sıcaklığının artmasıyla balıkların \"çifte stres\" altına girmesinin temel nedeni metinde hangi birbiriyle çatışan iki mekanizma ile açıklanmıştır?",
+        "o": [
+            "A) Amonyak miktarının azalıp alüminyum toksisitesinin artmasıyla",
+            "B) Sodyum iyonlarının kili şişirip solungaçları tıkamasıyla (SAR tehlikesi)",
+            "C) Balığın metabolizması hızlanıp oksijen ihtiyacı artarken, ısınan suda çözünmüş oksijenin aynı anda azalmasıyla",
+            "D) Suyun pH değerinin 9'un üzerine çıkıp karbonik asit oluşturmasıyla"
+        ],
+        "c": 2,
+        "e": "Çözüm-87: C - Su ısındığında metabolizma hızlanır (oksijen ihtiyacı artar) ama fiziksel kural gereği ısınan suda oksijen azalır; bu duruma çifte stres denir."
+    },
+    {
+        "q": "SORU-88: Oksijen yetersizliği nedeniyle su canlılarında görülen ani ölümlerin en yaygın sebebi metinde hangi kavramla ifade edilmiştir?",
+        "o": [
+            "A) Hipoksi",
+            "B) Florozis",
+            "C) Kloroz",
+            "D) Nekroz"
+        ],
+        "c": 0,
+        "e": "Çözüm-88: A - Oksijen yetersizliğinden kaynaklanan bu duruma hipoksi adı verilir."
+    },
+    {
+        "q": "SORU-89: Farklı balık türlerinin çözünmüş oksijen (ÇO) ihtiyaçları kıyaslandığında, metne göre aşağıdaki eşleştirmelerden hangisi kesinlikle doğrudur?",
+        "o": [
+            "A) Soğuk su balıkları için 3.5 mg/L KOİ yeterliyken, ılıman su balıkları için 12 mg/L gereklidir.",
+            "B) Sazan ve yayın balıkları oksijensiz yaşayabilirken, alabalıklar sadece artezyen ortamlarında yaşar.",
+            "C) Tüm balık türleri için standart olarak 1 mg/L florür ve 250 ppm mineral bulunması zorunludur.",
+            "D) Soğuk su balıkları (Alabalık) en az 7 mg/L oksijene ihtiyaç duyarken, ılıman su balıkları (Sazan) 5 mg/L civarını tolere edebilir."
+        ],
+        "c": 3,
+        "e": "Çözüm-89: D - Alabalık gibi soğuk su balıkları 7 mg/L oksijene, sazan gibi ılıman su balıkları ise 5 mg/L oksijene ihtiyaç duyar/tolere eder."
+    },
+    {
+        "q": "SORU-90: Suyun pH dengesinin 5'in altına düşmesi (asidik sular) balıkların solungaçlarında aşırı mukus salgılanmasına ve boğulmalara neden olur. Metne göre bu asidik ortamın yarattığı bir diğer fizikokimyasal \"toksik\" tehlike aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Siyanobakteri patlamalarının (ötrofikasyonun) hızlanması",
+            "B) Normalde çözünmeyen alüminyumun çözünür hale geçerek balıklar için zehirli etki yaratması",
+            "C) Kalsiyum ve magnezyumun sülfatla birleşerek kalıcı sertlik yapması",
+            "D) Amonyağın (NH3) serbest kalarak suyu bazik yapması"
+        ],
+        "c": 1,
+        "e": "Çözüm-90: B - pH 5'in altına düştüğünde, normalde çözünmeyen alüminyum çözünür hale geçerek balıklara toksik (zehirli) etki yapar."
+    },
+    {
+        "q": "SORU-91: Erozyon veya atık sularla gelen askıda katı maddelerin (bulanıklığın) solungaçlara yapışması ve balık yumurtalarının üzerini örtmesi dışında, sucul ekosisteme (besin zincirine) vurduğu en büyük darbe aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Işığın derinlere sızmasını engelleyerek su bitkilerinin ve fitoplanktonun fotosentez yapmasını durdurması",
+            "B) Suyu kızıla veya kahverengiye boyayarak Platin-Kobalt değerini bozması",
+            "C) Bikarbonat iyonlarını parçalayarak suyu tamponlaması",
+            "D) Dip sedimentindeki inorganik cıvayı \"metil cıvaya\" dönüştürmesi"
+        ],
+        "c": 0,
+        "e": "Çözüm-91: A - Bulanıklık ışığı keser ve besin zincirinin temeli olan fitoplanktonun fotosentezini durdurur."
+    },
+    {
+        "q": "SORU-92: Suyun pH değerinin 9'un üzerine çıkması (bazik sular), su canlıları için hayati bir tehlike oluşturur. Bu tehlikenin temel nedeni metne göre hangi maddenin zehirli formunun (NH3) artmasıdır?",
+        "o": [
+            "A) Karbonik asit",
+            "B) Alüminyum",
+            "C) Amonyak",
+            "D) Hidrojen sülfür (H2S)"
+        ],
+        "c": 2,
+        "e": "Çözüm-92: C - pH > 9 olduğunda amonyağın balıklar için son derece zehirli olan formu (NH3) artar."
+    },
+    {
+        "q": "SORU-93: Sadece balıkları değil, su içen veya sulak alanlarda yaşayan karasal yaban hayvanlarını da tehdit eden ve ürettikleri toksinlerle ölümcül olabilen \"mavi-yeşil alg\" patlamaları metinde hangi isimle anılmıştır?",
+        "o": [
+            "A) Koliform bakteriler",
+            "B) Siyanobakteri",
+            "C) Shigella",
+            "D) Campylobacter 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu bizzat taranmıştır: Plankton, Nekton, Bentos, Hipoksi, Soğuk/Ilıman Su Oksijen değerleri, Poikilotherm, Çifte Stres mekanizması, Bulanıklığın (AKM) fotosenteze ve yumurtalara zararı, Asidik suyun (pH<5) mukus ve Alüminyum etkisi, Bazik suyun (pH>9) Amonyak etkisi, Siyanobakteri (Mavi-yeşil alg). Atlanan hiçbir tanım, istisna veya detay kalmamıştır. Yanlış şıklar (çeldiriciler) tamamen belge bütününde işlediğimiz gerçek bilimsel terimlerden (SAR, Florozis, Platin-Kobalt, Shigella, Metil Cıva, Kloroz vb.) seçilerek uydurma kelime yasağına harfiyen uyulmuştur."
+        ],
+        "c": 1,
+        "e": "Çözüm-93: B - Yaban hayvanları için ölümcül toksinler üretebilen mavi-yeşil alg patlamaları \"siyanobakteri\" olarak geçmektedir."
+    },
+    {
+        "q": "SORU-94: Aşağıdaki su kirliliği kaynaklarını metinde geçen özellikleriyle doğru şekilde eşleştiriniz. I. Noktasal Kaynaklı Kirlilik II. Yayılı Kaynaklı Kirlilik III. Termal Kirlilik a) Tarımsal yüzey akışları ve şehir suları gibi geniş alanlardan sulara karışan, tespiti ve yönetimi en zor olan kirlilik türü. b) Endüstriyel tesislerin soğutma sularını yüksek sıcaklıkta nehir veya göllere deşarj etmesiyle oluşan, çözünmüş oksijeni tüketen kirlilik. c) Fabrika deşarj borusu veya kanalizasyon çıkışı gibi spesifik bir konumdan sulara karışan, tespiti ve yasal kontrolü kolay olan kirlilik.",
+        "o": [
+            "A) I-c, II-a, III-b",
+            "B) I-a, II-c, III-b",
+            "C) I-b, II-a, III-c",
+            "D) I-c, II-b, III-a"
+        ],
+        "c": 0,
+        "e": "Çözüm-94: A - Noktasal kirlilik tek noktadan çıkar/kontrolü kolaydır. Yayılı kirlilik geniş alandan gelir. Termal kirlilik soğutma suyu deşarjıdır."
+    },
+    {
+        "q": "SORU-95: Fosil yakıt tüketimi sonucu atmosfere salınarak su buharıyla reaksiyona giren ve suların pH dengesini bozarak \"asit yağmurlarına\" neden olan iki temel gaz aşağıdakilerden hangisinde doğru verilmiştir?",
+        "o": [
+            "A) Amonyak ve Hidrojen sülfür",
+            "B) Karbonik asit ve Kloramin",
+            "C) Kükürt dioksit ($SO_2$) ve Azot oksit ($NO_x$)",
+            "D) Sodyum ve Bikarbonat"
+        ],
+        "c": 2,
+        "e": "Çözüm-95: C - Asit yağmurlarına yol açan ana gazlar Kükürt dioksit ($SO_2$) ve Azot oksit ($NO_x$)'tir."
+    },
+    {
+        "q": "SORU-96: Endüstriyel soğutma sularının doğal ortamlara sıcak olarak verilmesiyle oluşan termal kirliliğin, balıklarda ani ölümlere (\"termal şok\") yol açmasının ardındaki temel fizikokimyasal mekanizma aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suda aniden artan sıcaklığın, çözünmüş oksijen miktarını hızla tüketerek hipoksiye (oksijensizliğe) neden olması",
+            "B) Sıcaklığın artmasıyla suda Platin-Kobalt değerinin bozulup fotosentezin durması",
+            "C) Suyun ısınmasıyla birlikte kalsiyum bikarbonatın geçici sertlik yaratması",
+            "D) Sıcak suyun ağır metallerin biyoakümülasyonunu tamamen engellemesi"
+        ],
+        "c": 0,
+        "e": "Çözüm-96: A - Termal kirlilik (sıcak su) oksijenin çözünürlüğünü hızla düşürerek balıkların oksijensizlikten (hipoksi/termal şok) ölmesine neden olur."
+    },
+    {
+        "q": "SORU-97: Suya karışan tarımsal kimyasal ilaçların (pestisitlerin) su canlıları ve genel ekosistem üzerindeki en tehlikeli etkisi metne göre aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suyun turgor basıncını artırarak bitkilerde fizyolojik kuraklık yaratması",
+            "B) Sadece flokülasyon işlemlerini engelleyerek suyu bulanıklaştırması",
+            "C) Sinir sistemini tahrip etmesi ve besin zincirinde dokularda birikerek (biyoakümülasyon) kalıcı toksisite yaratması",
+            "D) Klorür ve sülfat iyonlarıyla birleşerek kazan taşı oluşturması"
+        ],
+        "c": 2,
+        "e": "Çözüm-97: C - Pestisitler canlıların sinir sistemini tahrip eder ve besin zincirinde biyoakümülasyona (birikime) uğrar."
+    },
+    {
+        "q": "SORU-98: Radyoaktif kirliliğe neden olan maddelerin (radyonüklidlerin) sucul ekosistemlerde nesiller boyu kalıcı hasarlar (genetik mutasyonlar) bırakmasının temel sebebi metinde hangi kavramla açıklanmıştır?",
+        "o": [
+            "A) Asimilasyon kapasitelerinin çok düşük olması",
+            "B) Yarı ömür sürelerinin çok uzun olması",
+            "C) Sadece artezyen kuyularında yaşayabilmeleri",
+            "D) Poikilotherm (soğukkanlı) canlılar tarafından kolayca sindirilmeleri"
+        ],
+        "c": 1,
+        "e": "Çözüm-98: B - Radyoaktif maddelerin çok uzun \"yarı ömür\" süreleri, onların ekosistemde çok uzun yıllar kalarak mutasyon yapmasına neden olur."
+    },
+    {
+        "q": "SORU-99: Çevre yönetim planlamalarında \"tespiti ve yasal kontrolü en kolay olan\" kirlilik kaynağı aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Yayılı Kaynaklı Kirlilik",
+            "B) Siyanobakteri patlamaları",
+            "C) Asit Yağmurları",
+            "D) Noktasal Kaynaklı Kirlilik"
+        ],
+        "c": 3,
+        "e": "Çözüm-99: D - Çıkış noktası belli olduğu için tespiti ve kontrolü en kolay olan kirlilik \"noktasal\" kaynaklıdır."
+    },
+    {
+        "q": "SORU-100: Bir tarım arazisinde kullanılan suni gübrelerin yağmur sularıyla yıkanarak yakındaki bir göle karışması olayı, su kirliliği terminolojisinde hangi kategoriye girer?",
+        "o": [
+            "A) Noktasal kaynaklı kirlilik",
+            "B) Termal kirlilik",
+            "C) Radyoaktif kirlilik",
+            "D) Yayılı kaynaklı kirlilik"
+        ],
+        "c": 3,
+        "e": "Çözüm-100: D - Geniş tarım arazilerinden yıkanarak gelen kirlilik, \"yayılı kaynaklı\" kirliliğe örnektir."
+    },
+    {
+        "q": "SORU-101: Asit yağmurları sonucu göllerdeki pH değerinin 5'in altına düşmesi, daha önceki bölümlerde de belirtildiği üzere balıklar üzerinde hangi doğrudan toksik etkiyi yaratır?",
+        "o": [
+            "A) Normalde çözünmeyen alüminyumun çözünerek zehirli etki yapmasını",
+            "B) Biyomagnifikasyon ile Minamata hastalığına yol açmasını",
+            "C) Solungaçlarda florozis oluşturmasını",
+            "D) SAR (Sodyum Adsorpsiyon Oranı) endeksini yükseltmesini"
+        ],
+        "c": 0,
+        "e": "Çözüm-101: A - pH 5'in altına düşünce zehirli alüminyum iyonları çözünerek balıkları zehirler."
+    },
+    {
+        "q": "SORU-102: Su kirliliği sorunlarının çözümünde \"yayılı kaynaklı\" kirliliğin yönetilmesinin zor olmasının ana sebebi aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Fabrikaların deşarj limitlerine uymaması",
+            "B) Kirliliğin belirli bir boru veya kanaldan değil, çok geniş ve dağınık bir yüzeyden gelmesi",
+            "C) İçerisinde sadece kloramin bileşiklerinin bulunması",
+            "D) Mutlak su kıtlığı çeken bölgelerde Falkenmark indeksini sıfırlaması 5. ÇAPRAZ KONTROL (DOUBLE-CHECK) Kavram havuzu tekrar bizzat taranmıştır: Noktasal/Yayılı kirlilik, Termal Kirlilik (Termal Şok/ÇO düşüşü), Asit Yağmurları ($SO_2$, $NO_x$), Pestisit (Sinir sistemi, biyoakümülasyon), Radyoaktif kirlilik (Yarı ömür). Atlanan hiçbir detay bırakılmadı. Yanlış şıklar (çeldiriciler) tamamen gerçek kavramlardan (Minamata, Florozis, Platin-Kobalt, SAR, Falkenmark, Turgor vb.) seçildi."
+        ],
+        "c": 1,
+        "e": "Çözüm-102: B - Yayılı kirlilik belli bir borudan değil, yağmurlarla beraber çok geniş arazilerden akıp geldiği için tespiti ve kontrolü zordur."
+    },
+    {
+        "q": "SORU-103: Tarımsal sulama sularında sodyumun (Na) kalsiyum (Ca) ve magnezyuma (Mg) olan oranını belirleyen ve toprağın fiziksel yapısının (geçirgenliğinin) bozulup bozulmayacağını tahmin etmede kullanılan en temel indeks aşağıdakilerden hangisidir?",
+        "o": [
+            "A) KOİ (Kimyasal Oksijen İhtiyacı)",
+            "B) SAR (Sodyum Adsorpsiyon Oranı)",
+            "C) RSC (Kalıcı Sodyum Bikarbonat)",
+            "D) pH Endeksi"
+        ],
+        "c": 1,
+        "e": "Çözüm-103: B - SAR (Sodyum Adsorpsiyon Oranı), sodyumun diğer iyonlara oranını ölçer."
+    },
+    {
+        "q": "SORU-104: Sulama suyunda bulunması halinde, çok düşük konsantrasyonlarda bile (1-2 ppm) bitkilerin yaprak uçlarında yanmalara ve verim kaybına yol açan, özellikle jeotermal suların karışmasıyla miktarı artan \"fitotoksik\" element hangisidir?",
+        "o": [
+            "A) Azot",
+            "B) Fosfor",
+            "C) Bor",
+            "D) Potasyum"
+        ],
+        "c": 2,
+        "e": "Çözüm-104: C - Bor, bitkiler için düşük dozlarda bile zehirli (fitotoksik) olabilir."
+    },
+    {
+        "q": "SORU-105: Jeotermal enerji santrallerinde (JES) kullanılan sıcak akışkanın, enerji üretiminden sonra mutlaka yeraltı rezervuarına geri gönderilmesi işlemine ne ad verilir?",
+        "o": [
+            "A) Filtrasyon",
+            "B) Re-enjeksiyon",
+            "C) Asimilasyon",
+            "D) Evapotranspirasyon"
+        ],
+        "c": 1,
+        "e": "Çözüm-105: B - Bu işleme re-enjeksiyon denir."
+    },
+    {
+        "q": "SORU-106: Metinde belirtilen jeotermal kaynaklı \"re-enjeksiyon\" işleminin yapılmamasının yaratacağı en büyük risk aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Suyun sıcaklığının düşmesi",
+            "B) Atmosferdeki oksijen miktarının azalması",
+            "C) Tarım arazilerinde ağır metal birikimi, tuzlanma ve arazide çökmeler (tasman) oluşması",
+            "D) Balıkların poikilotherm özelliklerini kaybetmesi"
+        ],
+        "c": 2,
+        "e": "Çözüm-106: C - Re-enjeksiyon olmazsa tuzlanma, ağır metal kirliliği ve tasman (çökme) görülür."
+    },
+    {
+        "q": "SORU-107: Jeotermal santrallerin bulunduğu bölgelerde (Örn: Aydın/Menderes Havzası) halkın şikayet ettiği \"çürük yumurta kokusu\"nun kimyasal kaynağı olan gaz aşağıdakilerden hangisidir?",
+        "o": [
+            "A) Karbondioksit ($CO_2$)",
+            "B) Hidrojen Sülfür ($H_2S$)",
+            "C) Azot Protoksit ($N_2O$)",
+            "D) Metan ($CH_4$)"
+        ],
+        "c": 1,
+        "e": "Çözüm-107: B - $H_2S$ gazı karakteristik çürük yumurta kokusuna sahiptir."
+    },
+    {
+        "q": "SORU-108: Bir nehrin veya gölün birden fazla ülkenin sınırları içinden geçmesi veya bu ülkeler arasında sınır oluşturması durumunda bu su kaynağına verilen teknik isim hangisidir?",
+        "o": [
+            "A) İç sular",
+            "B) Sınır Aşan Sular",
+            "C) Havza Suları",
+            "D) Teritoryal Sular"
+        ],
+        "c": 1,
+        "e": "Çözüm-108: B - Uluslararası literatürde \"Sınır Aşan Sular\" (Transboundary Waters) olarak geçer."
+    },
+    {
+        "q": "SORU-109: Sınır aşan suların yönetiminde, suyun miktarını (metreküp) paylaşmak yerine, suyun sağladığı ekonomik değerlerin (enerji, gıda vb.) ortaklaşa kullanılmasını savunan modern yaklaşım hangisidir?",
+        "o": [
+            "A) Mutlak Egemenlik İlkesi",
+            "B) Fayda Paylaşımı (Benefit Sharing)",
+            "C) Su Savaşları Teorisi",
+            "D) Sınırlandırılamaz Su Hakkı"
+        ],
+        "c": 1,
+        "e": "Çözüm-109: B - Fayda paylaşımı, miktar yerine elde edilen katma değerin paylaşılmasıdır."
+    },
+    {
+        "q": "SORU-110: Metne göre, Türkiye'nin sınır aşan sular politikasında \"Veri olmadan yönetim olmaz\" ilkesiyle vurgulanan en önemli adım nedir?",
+        "o": [
+            "A) Yeni baraj inşaatlarını hızlandırmak",
+            "B) Şeffaf veri paylaşımı ve ortak teknik envanter çalışmaları yapmak",
+            "C) Suyu sadece enerji üretimi için kullanmak",
+            "D) Su fiyatlarını uluslararası düzeye çekmek"
+        ],
+        "c": 1,
+        "e": "Çözüm-110: B - Güven ortamı için şeffaf veri paylaşımı ve ortak envanter şarttır."
+    },
+    {
+        "q": "SORU-111: Aşağıdakilerden hangisi sulama suyunda \"yüksek tuzluluğun\" bitkiler üzerindeki doğrudan etkisidir?",
+        "o": [
+            "A) Bitkinin su almasını zorlaştırarak \"fizyolojik kuraklık\" yaratması",
+            "B) Bitkinin fotosentez hızını sonsuz artırması",
+            "C) Köklerin daha derinlere inmesini sağlaması",
+            "D) Toprağın pH değerini aniden 2'ye düşürmesi"
+        ],
+        "c": 0,
+        "e": "Çözüm-111: A - Yüksek tuz, ozmotik basıncı artırarak bitkinin su çekmesini engeller (fizyolojik kuraklık)."
+    },
+    {
+        "q": "SORU-112: Jeotermal akışkanların doğrudan nehirlere deşarj edilmesi, nehir suyunun kalitesini bozarak hangi tarımsal faaliyeti imkansız hale getirir?",
+        "o": [
+            "A) Balıkçılığı",
+            "B) Tarımsal sulamayı",
+            "C) Hidroelektrik üretimini",
+            "D) Su taşımacılığını"
+        ],
+        "c": 1,
+        "e": "Çözüm-112: B - Bor ve tuzluluk artışı tarımsal sulamayı bitirir."
+    }
+];
+
+    let currentQuestions = [], currentIndex = 0, solvedIndex = -1, userAnswers = {}, currentSetKey = "", stats = { correct: 0, wrong: 0 };
+
+    function initMenu() {
+        const menuGrid = document.getElementById('menuGrid');
+        menuGrid.innerHTML = "";
+        const setCount = Math.ceil(questions.length / QUESTIONS_PER_SET);
+
+        for (let i = 0; i < setCount; i++) {
+            const setKey = `state_set_${i}`;
+            const start = i * QUESTIONS_PER_SET;
+            const end = Math.min(start + QUESTIONS_PER_SET, questions.length);
+            const saved = JSON.parse(localStorage.getItem(setKey) || "{}");
+            const solved = Object.keys(saved.userAnswers || {}).length;
+            const isCompleted = (solved >= (end - start) && (end - start) > 0);
+
+            const btn = document.createElement('button');
+            btn.className = `menu-btn ${isCompleted ? 'locked' : ''}`;
+            btn.innerHTML = `<span class="title">(${CURRENT_SUBJECT}) Deneme Seti - ${i + 1}</span><br>
+                             <small>${end-start} soru ( ${solved} çözüldü - ${saved.stats?.correct || 0} doğru - ${saved.stats?.wrong || 0} yanlış )</small>`;
+
+            if (!isCompleted) btn.onclick = () => startSet(i, setKey, start, end);
+            menuGrid.appendChild(btn);
+        }
+    }
+
+    function startSet(idx, key, start, end) {
+        currentSetKey = key;
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (saved) {
+            currentQuestions = saved.currentQuestions;
+            currentIndex = saved.currentIndex;
+            solvedIndex = saved.solvedIndex;
+            userAnswers = saved.userAnswers;
+            stats = saved.stats;
+        } else {
+            currentQuestions = questions.slice(start, end).map(q => ({...q}));
+            currentIndex = 0;
+            solvedIndex = -1;
+            userAnswers = {};
+            stats = {correct: 0, wrong: 0};
+        }
+        document.getElementById('menuContainer').style.display = 'none';
+        document.getElementById('quizContainer').style.display = 'block';
+        document.getElementById('headerSubject').textContent = CURRENT_SUBJECT;
+        loadQuestion();
+        window.scrollTo(0, 0);
+    }
+
+    function loadQuestion() {
+        const q = currentQuestions[currentIndex];
+        const remaining = currentQuestions.length - (currentIndex + 1);
+        document.getElementById('progressBar').style.width = ((currentIndex + 1) / currentQuestions.length * 100) + "%";
+        document.getElementById('footerLeft').textContent = `Kalan Soru: ${remaining}`;
+        document.getElementById('footerRight').textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+        document.getElementById('questionText').innerHTML = q.q + (q.isReasked ? ' <br><span class="badge-tekrar">daha önce yanlış cevaplanan soru</span>' : '');
+
+        const optArea = document.getElementById('optionsArea');
+        const expArea = document.getElementById('explanationArea');
+        optArea.innerHTML = "";
+        expArea.style.display = 'none';
+
+        q.o.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            if (currentIndex <= solvedIndex) {
+                btn.disabled = true;
+                const userChoice = userAnswers[currentIndex];
+                if (q.isReasked || userChoice === q.c) {
+                    if (idx === userChoice) btn.classList.add(userChoice === q.c ? 'correct' : 'wrong');
+                    if (idx === q.c) btn.classList.add('correct');
+                    expArea.innerHTML = `<b>Açıklama:</b> ${q.e}`;
+                    expArea.style.display = 'block';
+                } else {
+                    if (idx === userChoice) btn.classList.add('wrong');
+                }
+            } else {
+                btn.onclick = () => selectOption(idx);
+            }
+            optArea.appendChild(btn);
+        });
+
+        document.getElementById('prevBtn').style.visibility = (currentIndex > 0) ? 'visible' : 'hidden';
+        document.getElementById('nextBtn').style.visibility = (currentIndex <= solvedIndex) ? 'visible' : 'hidden';
+    }
+
+    function selectOption(idx) {
+        const q = currentQuestions[currentIndex];
+        userAnswers[currentIndex] = idx;
+        solvedIndex = Math.max(solvedIndex, currentIndex);
+        if (idx === q.c) {
+            if (!q.isReasked) stats.correct++;
+        } else {
+            if (!q.isReasked) {
+                stats.wrong++;
+                const reaskedQ = {...q, isReasked: true};
+                currentQuestions.splice(currentIndex + 6, 0, reaskedQ);
+            } else {
+                const finalTryQ = {...q, isReasked: true};
+                currentQuestions.push(finalTryQ);
+            }
+        }
+        saveState();
+        loadQuestion();
+    }
+
+    function saveState() {
+        localStorage.setItem(currentSetKey, JSON.stringify({ currentQuestions, currentIndex, solvedIndex, userAnswers, stats }));
+    }
+
+    function goForward() {
+        if (currentIndex < solvedIndex) {
+            currentIndex = solvedIndex + 1;
+            if (currentIndex >= currentQuestions.length) showMenu();
+            else loadQuestion();
+        }
+        else if (currentIndex < currentQuestions.length - 1) {
+            currentIndex++;
+            loadQuestion();
+        }
+        else {
+            showMenu();
+        }
+        window.scrollTo(0, 0);
+    }
+
+    function goBack() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            loadQuestion();
+        }
+        window.scrollTo(0, 0);
+    }
+
+    function showMenu() {
+        document.getElementById('quizContainer').style.display = 'none';
+        document.getElementById('menuContainer').style.display = 'block';
+        initMenu();
+        window.scrollTo(0, 0);
+    }
+
+    function clearAllStatistics() {
+        if (confirm("Emin misiniz? Tüm istatistikler silinecek.")) {
+            Object.keys(localStorage).forEach(k => k.startsWith("state_set_") && localStorage.removeItem(k));
+            initMenu();
+        }
+    }
+
+    function resetCurrentSet() {
+        if (confirm("Emin misiniz? Sadece bu setin istatistikleri sıfırlanacak.")) {
+            localStorage.removeItem(currentSetKey);
+            showMenu();
+        }
+    }
+
+    initMenu();
+</script>
+</body>
+</html>
