@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Su Kalitesi Deneme Sınavı</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 80px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .menu-container, .quiz-container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .menu-btn.locked {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      cursor: not-allowed;
+      order: 999;
+      opacity: 0.85;
+    }
+
+    .wrong-menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #dc3545, #a71d2a);
+      color: white;
+      order: 9999;
+      animation: wrongBlink 10s infinite;
+    }
+
+    @keyframes wrongBlink {
+      0%, 45% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(220,53,69,0);
+      }
+      50% {
+        opacity: 0.35;
+        transform: scale(1.02);
+        box-shadow: 0 0 18px rgba(220,53,69,0.45);
+      }
+      55%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(220,53,69,0);
+      }
+    }
+
+    .quiz-container {
+      display: none;
+      position: relative;
+      padding-top: 85px;
+      min-height: 100vh;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 6px;
+      background: #28a745;
+      transition: 0.3s;
+      width: 0%;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .main-menu-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: calc(1rem + 4pt);
+      color: #333;
+      padding: 5px 0;
+    }
+
+    .header-info {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-right: 110px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .header-subject {
+      font-weight: normal;
+      color: #777;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .retry-badge {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffe69c;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .question-title {
+      margin-top: 0;
+      margin-bottom: 16px;
+      line-height: 1.45;
+      font-size: 1.2rem;
+      color: #222;
+    }
+
+    .option-btn {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+      background: #f8f9fa;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+      position: relative;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-btn.correct {
+      background: #d4edda !important;
+      border-color: #28a745 !important;
+      color: #155724 !important;
+      font-weight: bold;
+    }
+
+    .option-btn.wrong {
+      background: #f8d7da !important;
+      border-color: #dc3545 !important;
+      color: #721c24 !important;
+      font-weight: bold;
+    }
+
+    .tick {
+      display: inline-block;
+      margin-left: 10px;
+      color: #1f9d45;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+
+    .tick.show {
+      animation: popTick 0.45s ease forwards;
+    }
+
+    @keyframes popTick {
+      0%   { opacity: 0; transform: scale(0.4); }
+      60%  { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .explanation {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #eaf2f8;
+      border-left: 5px solid #2980b9;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .next-btn { background: #007bff; }
+    .prev-btn {
+      background: #e9ecef;
+      color: #dc3545 !important;
+      border: 1px solid #ddd;
+    }
+
+    .quiz-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #666;
+      font-weight: bold;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .disclaimer-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fdfdfd;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      color: #888;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .disclaimer-title {
+      display: block;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .source-tag {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.05);
+      color: #777;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
+    .reset-set-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #ffc107;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    @media (max-width: 480px) {
+      .quiz-container {
+        padding-top: 110px;
+      }
+
+      .header-info {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding-right: 104px;
+        align-items: flex-start;
+      }
+
+      .header-left {
+        display: block;
+        padding-right: 6px;
+      }
+
+      .main-menu-btn {
+        display: block;
+        font-size: 0.95rem;
+        padding: 0;
+        margin-bottom: 6px;
+      }
+
+      .header-subject {
+        display: block;
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.3;
+        max-width: 100%;
+      }
+
+      .question-title {
+        font-size: 1.05rem;
+      }
+
+      .option-btn {
+        font-size: 1rem;
+        padding: 14px;
+      }
+
+      .reset-set-btn {
+        top: 12px;
+        right: 12px;
+        font-size: 0.75rem;
+        padding: 7px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="menuContainer" class="menu-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
+      <h1 id="mainTitle" style="margin:0;">Su Kalitesi Deneme Sınavı</h1>
+      <button onclick="clearAllStatistics()" style="background:#dc3545; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.75rem;">
+        Verileri Sıfırla
+      </button>
+    </div>
+
+    <div id="menuGrid" class="menu-grid"></div>
+
+    <div class="disclaimer-box">
+      <span class="disclaimer-title">⚠️ Önemli Uyarı</span>
+      Bu sistemde yer alan içerikler yalnızca eğitim amaçlıdır. İçeriklerin kullanımından doğabilecek doğrudan veya dolaylı hiçbir sorumluluk kabul edilmez. Tüm kullanım sorumluluğu kullanıcıya aittir.
+    </div>
+  </div>
+
+  <div id="quizContainer" class="quiz-container">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="header-info">
+      <div class="header-left">
+        <button onclick="showMenu()" class="main-menu-btn">☰ Ana Menü</button>
+        <span id="headerSubject" class="header-subject"></span>
+      </div>
+    </div>
+
+    <button onclick="resetCurrentSet()" class="reset-set-btn">Seti Sıfırla</button>
+
+    <div id="retryBadge" class="retry-badge">Yalnış cevaplanan soru</div>
+    <h2 id="questionText" class="question-title">...</h2>
+
+    <div id="optionsArea"></div>
+
+    <div class="quiz-footer">
+      <div id="footerLeft">Kalan: 0</div>
+      <div id="footerRight">0 / 0</div>
+    </div>
+
+    <div id="explanationArea" class="explanation"></div>
+
+    <div class="nav-controls">
+      <button id="prevBtn" class="nav-btn prev-btn" onclick="goBack()" style="visibility:hidden;">❮ Önceki</button>
+      <button id="nextBtn" class="nav-btn next-btn" onclick="goForward()" style="visibility:hidden;">Yeni Soru ❯</button>
+    </div>
+  </div>
+</div>
+
+<div class="source-tag" id="sourceTag">Kaynak: yapayzeka / su_kalitesi_versiyon_6</div>
+
+<script>
+  const BASE_SUBJECT = "Su Kalitesi";
+  const VERSION_NUMBER = 6;
+
+  function buildVersionName(base, version) {
+    return `${base} Versiyon ${version}`;
+  }
+
+  function buildVersionSlug(base, version) {
+    return `${base.toLowerCase().replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}_versiyon_${version}`;
+  }
+
+  const CURRENT_SUBJECT = BASE_SUBJECT;
+  const VERSION_SLUG = buildVersionSlug(BASE_SUBJECT, VERSION_NUMBER);
+  const SOURCE_TEXT = `Kaynak: yapayzeka / ${VERSION_SLUG}`;
+  const QUESTIONS_PER_SET = 30;
+
+  const questions = [
+    {
+        "q": "Su, doğada hangi üç halde bulunur?",
+        "o": [
+            "Katı – sıvı – gaz",
+            "Katı – enerji – gaz",
+            "Sıvı – gaz – enerji",
+            "Katı – plazma – gaz"
+        ],
+        "c": 0,
+        "e": "Su doğada katı, sıvı ve gaz halinde bulunur."
+    },
+    {
+        "q": "Suyun kimyasal formülü aşağıdakilerden hangisidir?",
+        "o": [
+            "H₂SO₄",
+            "H₂O",
+            "O₂",
+            "CO₂"
+        ],
+        "c": 1,
+        "e": "Su, iki hidrojen ve bir oksijen atomundan oluşur."
+    },
+    {
+        "q": "Su molekülü hangi bağ ile oluşur?",
+        "o": [
+            "Van der Waals bağı",
+            "İyonik bağ",
+            "Metalik bağ",
+            "Kovalent bağ"
+        ],
+        "c": 3,
+        "e": "Su molekülünde hidrojen ve oksijen arasında kovalent bağ bulunur."
+    },
+    {
+        "q": "Suyun katı halinin yoğunluğu sıvı haline göre nasıldır?",
+        "o": [
+            "Değişmez",
+            "Daha azdır",
+            "Aynıdır",
+            "Daha fazladır"
+        ],
+        "c": 1,
+        "e": "Buzun yoğunluğu sudan düşüktür."
+    },
+    {
+        "q": "Suyun bu özelliği aşağıdakilerden hangisine neden olur?",
+        "o": [
+            "Buz suyun üstünde yüzer",
+            "Su dibine çöker",
+            "Su donar",
+            "Su buharlaşır"
+        ],
+        "c": 0,
+        "e": "Yoğunluğu düşük olan buz suyun üstünde kalır."
+    },
+    {
+        "q": "Metabolik faaliyetlerin büyük bölümü hangi ortamda gerçekleşir?",
+        "o": [
+            "Plazma",
+            "Sıvı",
+            "Gaz",
+            "Katı"
+        ],
+        "c": 1,
+        "e": "Metabolik reaksiyonlar sıvı ortamda gerçekleşir."
+    },
+    {
+        "q": "İnsan vücudunun yaklaşık ne kadarı sudur?",
+        "o": [
+            "%50",
+            "%90",
+            "%60–70",
+            "%40"
+        ],
+        "c": 2,
+        "e": "İnsan vücudunun büyük kısmı sudan oluşur."
+    },
+    {
+        "q": "Taze meyve ve sebzelerde su oranı yaklaşık kaçtır?",
+        "o": [
+            "%85–90",
+            "%50",
+            "%70",
+            "%60"
+        ],
+        "c": 0,
+        "e": "Taze bitkisel ürünlerde su oranı yüksektir."
+    },
+    {
+        "q": "Kuru tohumlarda su oranı yaklaşık kaçtır?",
+        "o": [
+            "%30",
+            "%5",
+            "%50",
+            "%10–15"
+        ],
+        "c": 3,
+        "e": "Kuru tohumlarda su oranı düşüktür."
+    },
+    {
+        "q": "Hidrosfer aşağıdakilerden hangisini kapsar?",
+        "o": [
+            "Sadece göller",
+            "Sadece atmosfer",
+            "Tüm su kütleleri",
+            "Sadece yeraltı suları"
+        ],
+        "c": 2,
+        "e": "Hidrosfer yeryüzündeki tüm suları kapsar."
+    },
+    {
+        "q": "Dünya yüzeyinin yaklaşık ne kadarı su ile kaplıdır?",
+        "o": [
+            "%60",
+            "%30",
+            "%50",
+            "%70"
+        ],
+        "c": 3,
+        "e": "Dünya yüzeyinin büyük kısmı sudur."
+    },
+    {
+        "q": "Dünya suyunun büyük kısmı hangi tür sudur?",
+        "o": [
+            "Tuzlu su",
+            "Tatlı su",
+            "Yeraltı suyu",
+            "Yağmur suyu"
+        ],
+        "c": 0,
+        "e": "Dünya suyunun çoğu tuzludur."
+    },
+    {
+        "q": "Tatlı suyun büyük kısmı nerede bulunur?",
+        "o": [
+            "Göllerde",
+            "Atmosferde",
+            "Nehirlerde",
+            "Buzullarda"
+        ],
+        "c": 3,
+        "e": "Tatlı suyun büyük bölümü buzullardadır."
+    },
+    {
+        "q": "Su kalitesi neye göre belirlenir?",
+        "o": [
+            "Rengine",
+            "Miktarına",
+            "Kullanım amacına",
+            "Sıcaklığına"
+        ],
+        "c": 2,
+        "e": "Su kalitesi kullanım amacına göre değerlendirilir."
+    },
+    {
+        "q": "İçme suyunda bulunmaması gereken temel unsur nedir?",
+        "o": [
+            "Patojen",
+            "Tuz",
+            "Oksijen",
+            "Mineral"
+        ],
+        "c": 0,
+        "e": "İçme suyu patojen içermemelidir."
+    },
+    {
+        "q": "İçme suyunun güvenli olması için hangi özellik zorunludur?",
+        "o": [
+            "Yüksek sıcaklık",
+            "Patojen içermemesi",
+            "Bulanıklık",
+            "Yüksek tuzluluk"
+        ],
+        "c": 1,
+        "e": "İçme suyunun patojen içermemesi gerekir."
+    },
+    {
+        "q": "İçme suyunun ideal sıcaklığı hangi aralıkta verilmiştir?",
+        "o": [
+            "7–12 °C",
+            "5–10 °C",
+            "15–20 °C",
+            "0–5 °C"
+        ],
+        "c": 0,
+        "e": "İçme suyunun ideal sıcaklığı 7–12 °C aralığındadır."
+    },
+    {
+        "q": "İçme suyunda pH değeri hangi aralıkta olmalıdır?",
+        "o": [
+            "4–6",
+            "8–12",
+            "6.5–9.2",
+            "5–7"
+        ],
+        "c": 2,
+        "e": "İçme suyu pH değeri belirli aralıkta olmalıdır."
+    },
+    {
+        "q": "Suyun renginin oluşmasında hangi element etkili olabilir?",
+        "o": [
+            "Demir",
+            "Oksijen",
+            "Hidrojen",
+            "Azot"
+        ],
+        "c": 0,
+        "e": "Demir suya renk verebilen elementlerdendir."
+    },
+    {
+        "q": "Suda bulunan H₂S gazı hangi özelliğe neden olur?",
+        "o": [
+            "Tatlı tat",
+            "Çürük yumurta kokusu",
+            "Renk oluşumu",
+            "Kokusuzluk"
+        ],
+        "c": 1,
+        "e": "H₂S suya çürük yumurta kokusu verir."
+    },
+    {
+        "q": "Bulanıklık neyin ölçüsüdür?",
+        "o": [
+            "Tuzluluk",
+            "pH",
+            "Sıcaklık",
+            "Işık geçirgenliği"
+        ],
+        "c": 3,
+        "e": "Bulanıklık suyun ışık geçirgenliği ile ilgilidir."
+    },
+    {
+        "q": "Askıda katı maddelerin önemli kaynağı nedir?",
+        "o": [
+            "Erozyon",
+            "Buharlaşma",
+            "Yoğunlaşma",
+            "Donma"
+        ],
+        "c": 0,
+        "e": "Erozyon askıda katı maddelerin kaynağıdır."
+    },
+    {
+        "q": "Suda E. coli bulunması neyi gösterir?",
+        "o": [
+            "Oksijen fazlalığı",
+            "Mineral zenginliği",
+            "Temiz su",
+            "Kanalizasyon karışması"
+        ],
+        "c": 3,
+        "e": "E. coli varlığı kanalizasyon bulaşını gösterir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi su kaynaklı hastalıklardan biridir?",
+        "o": [
+            "Kanser",
+            "Diyabet",
+            "Kolera",
+            "Astım"
+        ],
+        "c": 2,
+        "e": "Kolera su kaynaklı hastalıklardandır."
+    },
+    {
+        "q": "Suda amonyak yüksekliği neyin göstergesidir?",
+        "o": [
+            "Organik kirlilik",
+            "Temizlik",
+            "Tuzluluk",
+            "Sertlik"
+        ],
+        "c": 0,
+        "e": "Amonyak organik kirlilik göstergesidir."
+    },
+    {
+        "q": "Nitrit (NO₂) neyi ifade eder?",
+        "o": [
+            "Temiz su",
+            "Eski kirlilik",
+            "Taze kirlilik",
+            "Tuzluluk"
+        ],
+        "c": 2,
+        "e": "Nitrit taze kirlilik göstergesidir."
+    },
+    {
+        "q": "Nitratın yüksek olması hangi duruma yol açar?",
+        "o": [
+            "Kolera",
+            "Tifo",
+            "Dizanteri",
+            "Mavi bebek sendromu"
+        ],
+        "c": 3,
+        "e": "Nitrat yüksekliği mavi bebek sendromuna neden olabilir."
+    },
+    {
+        "q": "Ötrofikasyonun temel nedeni nedir?",
+        "o": [
+            "Azot ve fosfor artışı",
+            "pH düşüşü",
+            "Oksijen artışı",
+            "Sıcaklık düşüşü"
+        ],
+        "c": 0,
+        "e": "Azot ve fosfor artışı ötrofikasyona neden olur."
+    },
+    {
+        "q": "Çözünmüş oksijen hangi faktör ile ters orantılıdır?",
+        "o": [
+            "Derinlik",
+            "Sıcaklık",
+            "Basınç",
+            "Akış"
+        ],
+        "c": 1,
+        "e": "Sıcaklık arttıkça çözünmüş oksijen azalır."
+    },
+    {
+        "q": "Florür için önerilen değer kaç mg/L’dir?",
+        "o": [
+            "2",
+            "0.5",
+            "5",
+            "1"
+        ],
+        "c": 3,
+        "e": "Florür için önerilen değer 1 mg/L’dir."
+    },
+    {
+        "q": "Klorür iyonu yüksek olduğunda suya hangi özellik kazandırır?",
+        "o": [
+            "Tatlı tat",
+            "Tuzlu tat",
+            "Kokusuzluk",
+            "Acı tat"
+        ],
+        "c": 1,
+        "e": "Klorür yüksekliği suya tuzlu tat verir."
+    },
+    {
+        "q": "Sülfatların yüksek olması aşağıdaki etkilerden hangisine yol açabilir?",
+        "o": [
+            "Kokusuzluk",
+            "Sertlik azalması",
+            "Müshil etkisi",
+            "Tatlılık"
+        ],
+        "c": 2,
+        "e": "Sülfatlar müshil etkisi gösterebilir."
+    },
+    {
+        "q": "pH değeri 7’nin altında olan sular nasıl tanımlanır?",
+        "o": [
+            "Bazik",
+            "Asidik",
+            "Sert",
+            "Nötr"
+        ],
+        "c": 1,
+        "e": "pH 7’nin altı asidik ortamı ifade eder."
+    },
+    {
+        "q": "Suyun sertliği hangi iyonlardan kaynaklanır?",
+        "o": [
+            "Kalsiyum – magnezyum",
+            "Demir – mangan",
+            "Azot – fosfor",
+            "Sodyum – potasyum"
+        ],
+        "c": 0,
+        "e": "Sertlik kalsiyum ve magnezyumdan kaynaklanır."
+    },
+    {
+        "q": "Sert suyun etkilerinden biri aşağıdakilerden hangisidir?",
+        "o": [
+            "Sabunun iyi köpürmesi",
+            "Sabunun çökelmesi",
+            "Suyun tatlanması",
+            "Sabun tüketiminin azalması"
+        ],
+        "c": 1,
+        "e": "Sert suda sabun çöker ve köpürme azalır."
+    },
+    {
+        "q": "Demir ve manganın suya etkisi nedir?",
+        "o": [
+            "pH artırır",
+            "Oksijen artırır",
+            "Tatlılık verir",
+            "Renk ve metalik tat verir"
+        ],
+        "c": 3,
+        "e": "Demir ve mangan suya renk ve metalik tat verir."
+    },
+    {
+        "q": "Suyun elektriksel iletkenliği ne ile doğru orantılıdır?",
+        "o": [
+            "Çözünmüş iyon miktarı",
+            "Basınç",
+            "Sıcaklık",
+            "pH"
+        ],
+        "c": 0,
+        "e": "İletkenlik çözünmüş iyonlara bağlıdır."
+    },
+    {
+        "q": "Radyoaktif maddelerin sudaki etkisi aşağıdakilerden hangisidir?",
+        "o": [
+            "Vitamin üretimi",
+            "Kanser riski",
+            "Tat artışı",
+            "Sertlik azalması"
+        ],
+        "c": 1,
+        "e": "Radyoaktif maddeler sağlık açısından risklidir."
+    },
+    {
+        "q": "Sodyumun yüksek olması kimler için risklidir?",
+        "o": [
+            "Öğrenciler",
+            "Çocuklar",
+            "Kalp ve böbrek hastaları",
+            "Sporcular"
+        ],
+        "c": 2,
+        "e": "Sodyum yüksekliği bazı hastalar için risklidir."
+    },
+    {
+        "q": "Potasyumun yüksek olması hangi etkiye neden olabilir?",
+        "o": [
+            "İshal",
+            "Öksürük",
+            "Ateş",
+            "Kabızlık"
+        ],
+        "c": 0,
+        "e": "Potasyum yüksekliği ishal yapabilir."
+    },
+    {
+        "q": "Bakırın fazla olması vücutta nerede birikir?",
+        "o": [
+            "Akciğer",
+            "Kalp",
+            "Karaciğer",
+            "Böbrek"
+        ],
+        "c": 2,
+        "e": "Bakır karaciğerde birikebilir."
+    },
+    {
+        "q": "Siyanürün etkisi aşağıdakilerden hangisidir?",
+        "o": [
+            "Sindirimi hızlandırır",
+            "Tat artırır",
+            "Sertliği azaltır",
+            "Oksijen kullanımını engeller"
+        ],
+        "c": 3,
+        "e": "Siyanür hücresel oksijen kullanımını engeller."
+    },
+    {
+        "q": "Deterjanların suya etkisi nedir?",
+        "o": [
+            "Yoğunluğu artırır",
+            "Renk verir",
+            "Köpük oluşturur",
+            "Sıcaklığı artırır"
+        ],
+        "c": 2,
+        "e": "Deterjanlar köpük oluşumuna neden olur."
+    },
+    {
+        "q": "Pestisitlerin suya etkisi nedir?",
+        "o": [
+            "Faydalıdır",
+            "Zehirli ve kanserojendir",
+            "Besin sağlar",
+            "pH düzenler"
+        ],
+        "c": 1,
+        "e": "Pestisitler su ortamında toksik etki oluşturur."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi su kirliliği göstergelerinden biridir?",
+        "o": [
+            "Düşük sıcaklık",
+            "Düşük tuzluluk",
+            "KOİ’nin yüksek olması",
+            "Yüksek oksijen"
+        ],
+        "c": 2,
+        "e": "KOİ yüksekliği kirlilik göstergesidir."
+    },
+    {
+        "q": "İçme suyunda klorlama işlemi hangi amaçla yapılır?",
+        "o": [
+            "Suyun rengini değiştirmek",
+            "Suyun sıcaklığını artırmak",
+            "Suyun sertliğini artırmak",
+            "Mikroorganizmaları yok etmek"
+        ],
+        "c": 3,
+        "e": "Klorlama dezenfeksiyon amacıyla uygulanır."
+    },
+    {
+        "q": "Su depolarının temizliği en az ne kadar sürede yapılmalıdır?",
+        "o": [
+            "1 ay",
+            "1 yıl",
+            "6 ay",
+            "3 ay"
+        ],
+        "c": 2,
+        "e": "Depoların düzenli aralıklarla temizlenmesi gerekir."
+    },
+    {
+        "q": "İçme suyu temininden kim sorumludur?",
+        "o": [
+            "Belediyeler ve il özel idareleri",
+            "Üniversiteler",
+            "Özel firmalar",
+            "Vatandaş"
+        ],
+        "c": 0,
+        "e": "İçme suyu temini yerel yönetimlerin sorumluluğundadır."
+    },
+    {
+        "q": "Her 9 ton su için kaç klor tableti kullanılır?",
+        "o": [
+            "5",
+            "3",
+            "1",
+            "2"
+        ],
+        "c": 2,
+        "e": "Belirli miktarda su için belirli dozda klor kullanılır."
+    },
+    {
+        "q": "Yüzey sularının en önemli özelliği nedir?",
+        "o": [
+            "Sabit sıcaklık",
+            "Yüksek mikrobiyolojik risk",
+            "Düşük oksijen",
+            "Düşük kirlilik"
+        ],
+        "c": 1,
+        "e": "Yüzey suları mikrobiyolojik açıdan daha risklidir."
+    },
+    {
+        "q": "Yeraltı sularının çözünmüş oksijen durumu nasıldır?",
+        "o": [
+            "Çok yüksek",
+            "Değişmez",
+            "Orta",
+            "Düşük"
+        ],
+        "c": 3,
+        "e": "Yeraltı sularında oksijen genellikle düşüktür."
+    },
+    {
+        "q": "Saf suyun temel özelliği aşağıdakilerden hangisidir?",
+        "o": [
+            "Kokulu",
+            "Tatsız",
+            "Renkli",
+            "Tatlı"
+        ],
+        "c": 1,
+        "e": "Saf su tatsızdır."
+    },
+    {
+        "q": "Su en yoğun olduğu sıcaklık aşağıdakilerden hangisidir?",
+        "o": [
+            "0°C",
+            "10°C",
+            "4°C",
+            "2°C"
+        ],
+        "c": 2,
+        "e": "Su 4°C’de maksimum yoğunluğa ulaşır."
+    },
+    {
+        "q": "1 atm basınçta su kaç °C’de kaynar?",
+        "o": [
+            "95",
+            "110",
+            "90",
+            "100"
+        ],
+        "c": 3,
+        "e": "Su standart koşullarda 100°C’de kaynar."
+    },
+    {
+        "q": "Basınç azaldıkça suyun kaynama noktası nasıl değişir?",
+        "o": [
+            "Azalır",
+            "Değişmez",
+            "Artar",
+            "Önce artar sonra azalır"
+        ],
+        "c": 0,
+        "e": "Basınç azaldıkça kaynama noktası düşer."
+    },
+    {
+        "q": "Derin kuyu sularının sıcaklığı genellikle nasıldır?",
+        "o": [
+            "Çok değişken",
+            "Çok yüksek",
+            "Donma noktasına yakındır",
+            "Sabit ve ılıktır"
+        ],
+        "c": 3,
+        "e": "Yeraltı suları daha sabit sıcaklıktadır."
+    },
+    {
+        "q": "Sulama suyu için uygun sıcaklık yaklaşık kaç °C’dir?",
+        "o": [
+            "10",
+            "15",
+            "5",
+            "25"
+        ],
+        "c": 1,
+        "e": "Sulama için uygun sıcaklık belirli aralıkta olmalıdır."
+    },
+    {
+        "q": "Suyun kokusunu etkileyen gazlardan biri hangisidir?",
+        "o": [
+            "Hidrojen sülfür",
+            "Karbondioksit",
+            "Azot",
+            "Oksijen"
+        ],
+        "c": 0,
+        "e": "H₂S suya kötü koku verir."
+    },
+    {
+        "q": "Bulanıklık hangi özelliği ifade eder?",
+        "o": [
+            "pH",
+            "Sıcaklık",
+            "Tat",
+            "Işık geçirgenliği"
+        ],
+        "c": 3,
+        "e": "Bulanıklık ışık geçirgenliği ile ilgilidir."
+    },
+    {
+        "q": "Askıda katı maddelerin kaynağı aşağıdakilerden hangisidir?",
+        "o": [
+            "Erozyon",
+            "Buharlaşma",
+            "Yoğunlaşma",
+            "Donma"
+        ],
+        "c": 0,
+        "e": "Erozyon askıda maddelerin kaynağıdır."
+    },
+    {
+        "q": "Suda patojen mikroorganizmaların bulunması neyi gösterir?",
+        "o": [
+            "Suyun sert olduğunu",
+            "Suyun kimyasal olarak saf olduğunu",
+            "Suyun kirli olduğunu",
+            "Suyun temiz olduğunu"
+        ],
+        "c": 2,
+        "e": "Patojen varlığı suyun kirli olduğunu gösterir."
+    },
+    {
+        "q": "Suda E. coli bakterisinin bulunması neyin göstergesidir?",
+        "o": [
+            "Kanalizasyon karışması",
+            "Mineral zenginliği",
+            "Sertlik",
+            "Oksijen fazlalığı"
+        ],
+        "c": 0,
+        "e": "E. coli fekal kirlilik göstergesidir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi su kaynaklı hastalıklardan biridir?",
+        "o": [
+            "Tansiyon",
+            "Kolera",
+            "Diyabet",
+            "Astım"
+        ],
+        "c": 1,
+        "e": "Kolera su ile bulaşabilen hastalıklardandır."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi dezenfeksiyon yöntemidir?",
+        "o": [
+            "Klorlama",
+            "Çöktürme",
+            "Buharlaştırma",
+            "Filtrasyon"
+        ],
+        "c": 0,
+        "e": "Klorlama yaygın dezenfeksiyon yöntemidir."
+    },
+    {
+        "q": "Suda amonyak (NH₃) yüksekliği neyin göstergesidir?",
+        "o": [
+            "Tuzluluk",
+            "Sertlik",
+            "Temiz su",
+            "Organik kirlilik"
+        ],
+        "c": 3,
+        "e": "Amonyak organik kirlilik göstergesidir."
+    },
+    {
+        "q": "Nitrit (NO₂) hangi durumu ifade eder?",
+        "o": [
+            "Tuzluluk",
+            "Taze kirlilik",
+            "Temiz su",
+            "Eski kirlilik"
+        ],
+        "c": 1,
+        "e": "Nitrit taze kirliliğin göstergesidir."
+    },
+    {
+        "q": "Nitrat (NO₃) yüksekliği hangi sağlık sorununa yol açabilir?",
+        "o": [
+            "Astım",
+            "Kolera",
+            "Mavi bebek sendromu",
+            "Grip"
+        ],
+        "c": 2,
+        "e": "Nitrat yüksekliği mavi bebek sendromuna neden olabilir."
+    },
+    {
+        "q": "Ötrofikasyonun temel nedeni nedir?",
+        "o": [
+            "pH düşüşü",
+            "Oksijen artışı",
+            "Sıcaklık düşüşü",
+            "Azot ve fosfor artışı"
+        ],
+        "c": 3,
+        "e": "Azot ve fosfor artışı ötrofikasyona neden olur."
+    },
+    {
+        "q": "Çözünmüş oksijen hangi faktör ile ters orantılıdır?",
+        "o": [
+            "Derinlik",
+            "Sıcaklık",
+            "Basınç",
+            "Akış hızı"
+        ],
+        "c": 1,
+        "e": "Sıcaklık arttıkça çözünmüş oksijen azalır."
+    },
+    {
+        "q": "Florür için önerilen değer kaç mg/L’dir?",
+        "o": [
+            "1",
+            "2",
+            "0.5",
+            "5"
+        ],
+        "c": 0,
+        "e": "Florür için önerilen değer 1 mg/L’dir."
+    },
+    {
+        "q": "Klorür hangi değerden sonra suya tuzlu tat verir?",
+        "o": [
+            "100 mg/L",
+            "150 mg/L",
+            "250 mg/L",
+            "500 mg/L"
+        ],
+        "c": 2,
+        "e": "Klorür yüksekliği tuzlu tat oluşturur."
+    },
+    {
+        "q": "Sülfatlar hangi etkiyi gösterebilir?",
+        "o": [
+            "Tatlılık",
+            "Müshil etkisi",
+            "Sertlik azalması",
+            "Koku oluşmaması"
+        ],
+        "c": 1,
+        "e": "Sülfatlar müshil etkisi gösterebilir."
+    },
+    {
+        "q": "pH değeri 7’nin altında olan sular nasıl tanımlanır?",
+        "o": [
+            "Asidik",
+            "Sert",
+            "Nötr",
+            "Bazik"
+        ],
+        "c": 0,
+        "e": "pH 7’nin altı asidiktir."
+    },
+    {
+        "q": "Su sertliğinin temel nedeni nedir?",
+        "o": [
+            "Sodyum",
+            "Oksijen",
+            "Azot",
+            "Kalsiyum ve magnezyum"
+        ],
+        "c": 3,
+        "e": "Sertlik Ca ve Mg iyonlarından kaynaklanır."
+    },
+    {
+        "q": "Sert suyun etkilerinden biri nedir?",
+        "o": [
+            "Renk azalması",
+            "Sabunun çökelmesi",
+            "Suyun tatlanması",
+            "Sabunun iyi köpürmesi"
+        ],
+        "c": 1,
+        "e": "Sert suda sabun çöker."
+    },
+    {
+        "q": "Su kalitesi hangi faktörlere bağlı olarak değişebilir?",
+        "o": [
+            "Sadece pH",
+            "Sadece sıcaklık",
+            "Sadece tuzluluk",
+            "Mevsim ve kullanım amacına"
+        ],
+        "c": 3,
+        "e": "Su kalitesi mevsim ve kullanım amacına göre değişir."
+    },
+    {
+        "q": "Türkiye’de yıllık ortalama yağış miktarı yaklaşık kaç mm’dir?",
+        "o": [
+            "643",
+            "800",
+            "500",
+            "1000"
+        ],
+        "c": 0,
+        "e": "Türkiye’nin ortalama yağışı yaklaşık 643 mm’dir."
+    },
+    {
+        "q": "Türkiye’nin toplam kullanılabilir su potansiyeli yaklaşık kaç milyar m³’tür?",
+        "o": [
+            "50",
+            "80",
+            "200",
+            "112"
+        ],
+        "c": 3,
+        "e": "Türkiye’nin net su potansiyeli yaklaşık 112 milyar m³’tür."
+    },
+    {
+        "q": "Türkiye’de suyun en fazla kullanıldığı sektör hangisidir?",
+        "o": [
+            "Enerji",
+            "Tarım",
+            "Sanayi",
+            "Evsel kullanım"
+        ],
+        "c": 1,
+        "e": "Su en fazla tarımda kullanılmaktadır."
+    },
+    {
+        "q": "Türkiye’de kişi başına düşen yıllık su miktarı yaklaşık kaç m³’tür?",
+        "o": [
+            "3000",
+            "5000",
+            "700",
+            "1430"
+        ],
+        "c": 3,
+        "e": "Kişi başına düşen su miktarı yaklaşık 1430 m³’tür."
+    },
+    {
+        "q": "Dünya üzerindeki suyun yaklaşık yüzde kaçı tuzludur?",
+        "o": [
+            "%97,5",
+            "%90",
+            "%50",
+            "%70"
+        ],
+        "c": 0,
+        "e": "Dünya suyunun büyük kısmı tuzludur."
+    },
+    {
+        "q": "Tatlı suyun büyük bölümü nerede bulunur?",
+        "o": [
+            "Nehirlerde",
+            "Buzullarda",
+            "Yeraltında",
+            "Göllerde"
+        ],
+        "c": 1,
+        "e": "Tatlı suyun çoğu buzullardadır."
+    },
+    {
+        "q": "İçme suyunun güvenli olması için aşağıdakilerden hangisi gereklidir?",
+        "o": [
+            "Yüksek bulanıklık",
+            "Yüksek tuzluluk",
+            "Patojen içermemesi",
+            "Düşük oksijen"
+        ],
+        "c": 2,
+        "e": "İçme suyu patojen içermemelidir."
+    },
+    {
+        "q": "Suyun estetik özellikleri arasında hangisi yer alır?",
+        "o": [
+            "pH",
+            "Renk",
+            "Amonyak",
+            "Nitrat"
+        ],
+        "c": 1,
+        "e": "Renk estetik parametredir."
+    },
+    {
+        "q": "Su kaynaklarının korunması neden önemlidir?",
+        "o": [
+            "Sadece tarım için",
+            "Sadece sanayi için",
+            "Sadece ekonomik sebepler",
+            "Sürdürülebilir kullanım için"
+        ],
+        "c": 3,
+        "e": "Su kaynaklarının sürdürülebilir kullanımı önemlidir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi suyun fiziksel özelliklerinden biridir?",
+        "o": [
+            "Nitrat",
+            "Fosfat",
+            "Sıcaklık",
+            "Amonyak"
+        ],
+        "c": 2,
+        "e": "Sıcaklık fiziksel parametredir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi suyun kimyasal parametresidir?",
+        "o": [
+            "Koku",
+            "Renk",
+            "Bulanıklık",
+            "pH"
+        ],
+        "c": 3,
+        "e": "pH kimyasal parametredir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi biyolojik kirleticidir?",
+        "o": [
+            "Bakteri",
+            "Demir",
+            "Kum",
+            "Tuz"
+        ],
+        "c": 0,
+        "e": "Bakteriler biyolojik kirleticidir."
+    },
+    {
+        "q": "Suda çözünmüş oksijen neden önemlidir?",
+        "o": [
+            "Renk oluşturur",
+            "Tat verir",
+            "Sıcaklığı artırır",
+            "Canlı yaşamı için gereklidir"
+        ],
+        "c": 3,
+        "e": "Oksijen su canlıları için gereklidir."
+    },
+    {
+        "q": "Su kirliliği aşağıdakilerden hangisi ile tanımlanır?",
+        "o": [
+            "Suyun buharlaşması",
+            "Suyun soğuması",
+            "Suyun fiziksel, kimyasal ve biyolojik özelliklerinin bozulması",
+            "Suyun berrak olması"
+        ],
+        "c": 2,
+        "e": "Su kirliliği su özelliklerinin bozulmasıdır."
+    },
+    {
+        "q": "Su sertliği nasıl tanımlanır?",
+        "o": [
+            "Suyun içindeki çözünmüş çok değerlikli metal katyonlarının toplam konsantrasyonu",
+            "Suyun asitleri nötralize etme kapasitesi",
+            "Suyun bulanıklık düzeyi",
+            "Suyun içindeki çözünmüş tek değerlikli metal katyonlarının toplamı"
+        ],
+        "c": 0,
+        "e": "Su sertliği, suda çözünmüş halde bulunan çok değerlikli metal katyonlarının toplam konsantrasyonu olarak tanımlanır."
+    },
+    {
+        "q": "Doğal sularda sertliği oluşturan temel iyonlar hangileridir?",
+        "o": [
+            "Demir ve Mangan",
+            "Kalsiyum ve Magnezyum",
+            "Sodyum ve Potasyum",
+            "Klorür ve Sülfat"
+        ],
+        "c": 1,
+        "e": "Doğal sularda sertliği oluşturan temel iyonlar Kalsiyum ve Magnezyumdur."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi sertliğe katkıda bulunsa da genellikle ihmal edilen iyonlardan biridir?",
+        "o": [
+            "Stronsiyum",
+            "Klorür",
+            "Bikarbonat",
+            "Nitrat"
+        ],
+        "c": 0,
+        "e": "Stronsiyum, demir ve mangan sertliğe katkıda bulunsa da genellikle ihmal edilir."
+    },
+    {
+        "q": "Sertliğin sınıflandırılmasında esas alınan unsur aşağıdakilerden hangisidir?",
+        "o": [
+            "Sıcaklık düzeyi",
+            "Çözünmüş oksijen miktarı",
+            "Suyun rengi",
+            "Eşlik eden anyonların türü"
+        ],
+        "c": 3,
+        "e": "Sertlik, eşlik eden anyonların türüne göre sınıflandırılır."
+    },
+    {
+        "q": "Geçici sertlik hangi iyonların bikarbonat ve karbonat anyonları ile oluşturduğu sertliktir?",
+        "o": [
+            "Demir ve Mangan",
+            "Kalsiyum ve Magnezyum",
+            "Amonyum ve Nitrit",
+            "Sodyum ve Potasyum"
+        ],
+        "c": 1,
+        "e": "Geçici sertlik, kalsiyum ve magnezyum iyonlarının bikarbonat ve karbonat anyonları ile oluşturduğu sertliktir."
+    },
+    {
+        "q": "Geçici sertliğe “geçici” denmesinin nedeni nedir?",
+        "o": [
+            "Sadece yeraltı sularında bulunması",
+            "Renk değişimine yol açması",
+            "Kaynatılınca karbondioksitin uçup bikarbonatların çözünmeyen karbonatlara dönüşerek çökmesi",
+            "Sadece yağmur suyunda görülmesi"
+        ],
+        "c": 2,
+        "e": "Su kaynatıldığında CO₂ uçar, bikarbonatlar çözünmeyen karbonatlara dönüşüp çöker."
+    },
+    {
+        "q": "Geçici sertliğin etkilerinden biri aşağıdakilerden hangisidir?",
+        "o": [
+            "Çaydanlık ve kazanlarda kireç tabakası oluşması",
+            "Suda köpük oluşması",
+            "Suyun pH’ının hızla düşmesi",
+            "Suyun tuzlu tat alması"
+        ],
+        "c": 0,
+        "e": "Geçici sertlik, çaydanlık, kazan ve sıcak su borularında kireç tabakası oluşmasına neden olur."
+    },
+    {
+        "q": "Sorunlu suların kullanımı zorunlu olduğunda önerilen yöntemlerden biri aşağıdakilerden hangisidir?",
+        "o": [
+            "Sulamayı tamamen bırakmak",
+            "Tuza veya sodyuma toleransı yüksek bitkiler seçmek",
+            "Yalnızca yüzey sulaması yapmak",
+            "Toprağa sadece azot vermek"
+        ],
+        "c": 1,
+        "e": "Sorunlu sularda tuza veya sodyuma toleransı yüksek bitkiler seçilmelidir."
+    },
+    {
+        "q": "“Yıkama (Leaching)” yönteminin amacı nedir?",
+        "o": [
+            "Toprak rengini değiştirmek",
+            "Suyun sıcaklığını düşürmek",
+            "Suyun pH’ını artırmak",
+            "Topraktaki tuzları kök bölgesinden uzaklaştırmak"
+        ],
+        "c": 3,
+        "e": "Yıkama, toprakta biriken tuzları kök bölgesinden uzaklaştırmak için uygulanır."
+    },
+    {
+        "q": "Sodyum zararı olan topraklarda toprak yapısını düzeltmek için ne eklenmesi önerilir?",
+        "o": [
+            "Demir veya mangan",
+            "Klor veya sülfat",
+            "Kireç veya jips",
+            "Tuz veya potasyum"
+        ],
+        "c": 2,
+        "e": "Sodyum zararı olan topraklara kireç veya jips eklenebilir."
+    },
+    {
+        "q": "Toksisite riski varsa hangi sulama yöntemi tercih edilmelidir?",
+        "o": [
+            "Yaprakların ıslandığı yağmurlama",
+            "Damla sulama",
+            "Salma sulama",
+            "Taşkın sulama"
+        ],
+        "c": 1,
+        "e": "Toksisite riski varsa damla sulama tercih edilmelidir."
+    },
+    {
+        "q": "Su molekülü hangi atomlardan oluşur?",
+        "o": [
+            "2 Oksijen – 1 Hidrojen",
+            "1 Hidrojen – 2 Oksijen",
+            "2 Hidrojen – 1 Oksijen",
+            "3 Hidrojen"
+        ],
+        "c": 2,
+        "e": "Su iki hidrojen ve bir oksijenden oluşur."
+    },
+    {
+        "q": "Suyun sıvı halde bulunması hangi süreçler için önemlidir?",
+        "o": [
+            "Buharlaşma",
+            "Yoğunlaşma",
+            "Donma",
+            "Metabolik reaksiyonlar"
+        ],
+        "c": 3,
+        "e": "Metabolik faaliyetler sıvı ortamda gerçekleşir."
+    },
+    {
+        "q": "Biyosfer aşağıdakilerden hangisini kapsar?",
+        "o": [
+            "Sadece su",
+            "Tüm canlıların yaşadığı alan",
+            "Sadece hava",
+            "Sadece toprak"
+        ],
+        "c": 1,
+        "e": "Biyosfer canlıların yaşadığı tüm ortamları kapsar."
+    },
+    {
+        "q": "Hidrosfer aşağıdakilerden hangisini ifade eder?",
+        "o": [
+            "Ateş küre",
+            "Toprak küre",
+            "Hava küre",
+            "Su küre"
+        ],
+        "c": 3,
+        "e": "Hidrosfer yeryüzündeki tüm suları kapsar."
+    },
+    {
+        "q": "Dünya yüzeyinde bulunan suyun büyük kısmı hangi kaynaktadır?",
+        "o": [
+            "Nehirler",
+            "Göller",
+            "Okyanuslar",
+            "Yeraltı"
+        ],
+        "c": 2,
+        "e": "Dünya suyunun büyük kısmı okyanuslardadır."
+    },
+    {
+        "q": "İçme suyu hangi özellikte olmalıdır?",
+        "o": [
+            "Patojen içermeyen",
+            "Bulanık",
+            "Tuzlu",
+            "Kokulu"
+        ],
+        "c": 0,
+        "e": "İçme suyu patojen içermemelidir."
+    },
+    {
+        "q": "Su kalitesi hangi faktöre göre değişir?",
+        "o": [
+            "Sıcaklık",
+            "Tuz",
+            "Kullanım amacı",
+            "Renk"
+        ],
+        "c": 2,
+        "e": "Su kalitesi kullanım amacına göre değerlendirilir."
+    },
+    {
+        "q": "Türkiye’de yıllık yağış ortalaması yaklaşık kaç mm’dir?",
+        "o": [
+            "800",
+            "643",
+            "500",
+            "1000"
+        ],
+        "c": 1,
+        "e": "Türkiye ortalama yağışı yaklaşık 643 mm’dir."
+    },
+    {
+        "q": "Türkiye’de suyun en fazla kullanıldığı alan hangisidir?",
+        "o": [
+            "Tarım",
+            "Sanayi",
+            "Evsel",
+            "Enerji"
+        ],
+        "c": 0,
+        "e": "Su en çok tarımda kullanılır."
+    },
+    {
+        "q": "İçme suyunun estetik özelliklerinden biri aşağıdakilerden hangisidir?",
+        "o": [
+            "Amonyak",
+            "pH",
+            "Nitrat",
+            "Renk"
+        ],
+        "c": 3,
+        "e": "Renk estetik parametredir."
+    },
+    {
+        "q": "Suyun kokusunu etkileyen gazlardan biri hangisidir?",
+        "o": [
+            "Azot",
+            "Oksijen",
+            "Hidrojen sülfür",
+            "Karbondioksit"
+        ],
+        "c": 2,
+        "e": "H₂S kötü koku oluşturur."
+    },
+    {
+        "q": "Bulanıklık aşağıdakilerden hangisi ile ilgilidir?",
+        "o": [
+            "pH",
+            "Tuzluluk",
+            "Sıcaklık",
+            "Işık geçirgenliği"
+        ],
+        "c": 3,
+        "e": "Bulanıklık ışık geçirgenliği ile ilişkilidir."
+    },
+    {
+        "q": "Erozyon sonucu suya karışan maddeler hangi özelliği artırır?",
+        "o": [
+            "pH",
+            "Bulanıklık",
+            "Sıcaklık",
+            "Tuzluluk"
+        ],
+        "c": 1,
+        "e": "Askıda katı maddeler bulanıklığı artırır."
+    },
+    {
+        "q": "E. coli bakterisinin varlığı neyi gösterir?",
+        "o": [
+            "Temiz su",
+            "Oksijen fazlalığı",
+            "Mineral zenginliği",
+            "Kanalizasyon karışması"
+        ],
+        "c": 3,
+        "e": "E. coli fekal kirlilik göstergesidir."
+    },
+    {
+        "q": "Aşağıdakilerden hangisi su kaynaklı hastalıktır?",
+        "o": [
+            "Kanser",
+            "Diyabet",
+            "Kolera",
+            "Astım"
+        ],
+        "c": 2,
+        "e": "Kolera su ile bulaşır."
+    },
+    {
+        "q": "Amonyak yüksekliği neyi gösterir?",
+        "o": [
+            "Sertlik",
+            "Temizlik",
+            "Tuzluluk",
+            "Organik kirlilik"
+        ],
+        "c": 3,
+        "e": "Amonyak organik kirlilik göstergesidir."
+    },
+    {
+        "q": "Nitrit neyin göstergesidir?",
+        "o": [
+            "Sertlik",
+            "Taze kirlilik",
+            "Eski kirlilik",
+            "Temiz su"
+        ],
+        "c": 1,
+        "e": "Nitrit taze kirliliği gösterir."
+    },
+    {
+        "q": "Ötrofikasyonun nedeni nedir?",
+        "o": [
+            "pH düşüşü",
+            "Sıcaklık düşüşü",
+            "Azot ve fosfor artışı",
+            "Oksijen artışı"
+        ],
+        "c": 2,
+        "e": "Besin maddeleri artışı ötrofikasyona neden olur."
+    },
+    {
+        "q": "Sertlik hangi iyonlardan kaynaklanır?",
+        "o": [
+            "Kalsiyum ve magnezyum",
+            "Sodyum",
+            "Oksijen",
+            "Azot"
+        ],
+        "c": 0,
+        "e": "Sertlik Ca ve Mg’den kaynaklanır."
+    },
+    {
+        "q": "Sert suyun etkisi nedir?",
+        "o": [
+            "Renk azalır",
+            "Sabun çöker",
+            "Tatlı olur",
+            "Sabun köpürmesi artar"
+        ],
+        "c": 1,
+        "e": "Sert suda sabun çöker."
+    },
+    {
+        "q": "Demir ve mangan suya ne kazandırır?",
+        "o": [
+            "Oksijen",
+            "Tatlılık",
+            "Kokusuzluk",
+            "Renk ve metalik tat"
+        ],
+        "c": 3,
+        "e": "Demir ve mangan renk ve metalik tat verir."
+    },
+    {
+        "q": "İletkenlik ne ile doğru orantılıdır?",
+        "o": [
+            "pH",
+            "Çözünmüş iyon",
+            "Sıcaklık",
+            "Basınç"
+        ],
+        "c": 1,
+        "e": "İletkenlik çözünmüş iyonlara bağlıdır."
+    },
+    {
+        "q": "Radyoaktif maddelerin etkisi nedir?",
+        "o": [
+            "Kanser riski",
+            "Tat verir",
+            "Renk verir",
+            "Vitamin üretir"
+        ],
+        "c": 0,
+        "e": "Radyoaktif maddeler kanser riski taşır."
+    },
+    {
+        "q": "Sodyum yüksekliği kimler için risklidir?",
+        "o": [
+            "Öğrenciler",
+            "Kalp hastaları",
+            "Çocuklar",
+            "Sporcular"
+        ],
+        "c": 1,
+        "e": "Sodyum yüksekliği bazı hastalar için risklidir."
+    },
+    {
+        "q": "Deterjanların etkisi nedir?",
+        "o": [
+            "Yoğunluk",
+            "Sıcaklık",
+            "Köpük",
+            "Renk"
+        ],
+        "c": 2,
+        "e": "Deterjanlar köpük yapar."
+    },
+    {
+        "q": "Pestisitlerin etkisi nedir?",
+        "o": [
+            "Zehirli",
+            "pH düzenler",
+            "Faydalı",
+            "Besin"
+        ],
+        "c": 0,
+        "e": "Pestisitler toksiktir."
+    },
+    {
+        "q": "Klorlama ne için yapılır?",
+        "o": [
+            "Tat",
+            "Sıcaklık",
+            "Renk",
+            "Dezenfeksiyon"
+        ],
+        "c": 3,
+        "e": "Klorlama dezenfeksiyon içindir."
+    },
+    {
+        "q": "Su depoları ne sıklıkla temizlenmelidir?",
+        "o": [
+            "6 ay",
+            "1 yıl",
+            "3 ay",
+            "1 ay"
+        ],
+        "c": 0,
+        "e": "Depolar 6 ayda bir temizlenmelidir."
+    },
+    {
+        "q": "Su en yoğun hangi sıcaklıktadır?",
+        "o": [
+            "0",
+            "10",
+            "4",
+            "2"
+        ],
+        "c": 2,
+        "e": "Su 4°C'de en yoğundur."
+    },
+    {
+        "q": "Su kaç derecede kaynar?",
+        "o": [
+            "90",
+            "95",
+            "110",
+            "100"
+        ],
+        "c": 3,
+        "e": "Su 100°C'de kaynar."
+    }
+];
+
+  document.getElementById("mainTitle").textContent = `${BASE_SUBJECT} Deneme Sınavı`;
+  document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+  document.getElementById("sourceTag").textContent = SOURCE_TEXT;
+  document.title = `${BASE_SUBJECT} Deneme Sınavı`;
+
+  if (performance.navigation.type === performance.navigation.TYPE_RELOAD || !sessionStorage.getItem("session_active")) {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+    });
+    sessionStorage.setItem("session_active", "true");
+  }
+
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let solvedIndex = -1;
+  let userAnswers = {};
+  let currentSetKey = "";
+  let stats = { correct: 0, wrong: 0 };
+  let wrongQuestionsMode = false;
+
+  function storagePrefix() {
+    return "exam_" + CURRENT_SUBJECT.replace(/\s+/g, "_") + "_";
+  }
+
+  function setStateKey(index) {
+    return storagePrefix() + "state_set_" + index;
+  }
+
+  function wrongQuestionsKey() {
+    return storagePrefix() + "wrong_questions_pool";
+  }
+
+  function getWrongQuestionsPool() {
+    return JSON.parse(localStorage.getItem(wrongQuestionsKey()) || "[]");
+  }
+
+  function saveWrongQuestionsPool(pool) {
+    localStorage.setItem(wrongQuestionsKey(), JSON.stringify(pool));
+  }
+
+  function addWrongQuestionToPool(question) {
+    const pool = getWrongQuestionsPool();
+
+    const exists = pool.some(item =>
+      item.q === question.q &&
+      JSON.stringify(item.o) === JSON.stringify(question.o)
+    );
+
+    if (!exists) {
+      pool.push({
+        q: question.q,
+        o: [...question.o],
+        c: question.c,
+        e: question.e || ""
+      });
+      saveWrongQuestionsPool(pool);
+    }
+  }
+
+  function normalizeQuestion(q, originalIndex) {
+    return {
+      id: q.id || ("q_" + originalIndex + "_" + Math.random().toString(36).slice(2, 8)),
+      originalNo: originalIndex + 1,
+      q: q.q,
+      o: [...q.o],
+      c: q.c,
+      e: q.e || "",
+      isRetry: q.isRetry || false,
+      retryFrom: q.retryFrom || null,
+      retryCount: q.retryCount || 0,
+      answeredCorrectly: q.answeredCorrectly || false
+    };
+  }
+
+  function initMenu() {
+    const menuGrid = document.getElementById("menuGrid");
+    menuGrid.innerHTML = "";
+
+    const totalSets = Math.ceil(questions.length / QUESTIONS_PER_SET);
+
+    let setsPerButton = 1;
+    let buttonCount = totalSets;
+
+    if (buttonCount > 10) {
+      setsPerButton = 2;
+      buttonCount = Math.ceil(totalSets / setsPerButton);
+    }
+
+    buttonCount = Math.min(buttonCount, 10);
+
+    for (let i = 0; i < buttonCount; i++) {
+      const startSetNo = i * setsPerButton + 1;
+      const endSetNo = Math.min(startSetNo + setsPerButton - 1, totalSets);
+
+      const start = (startSetNo - 1) * QUESTIONS_PER_SET;
+      const end = Math.min(endSetNo * QUESTIONS_PER_SET, questions.length);
+
+      if (start >= questions.length) continue;
+
+      const key = setStateKey(i);
+
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const solved = saved ? Object.keys(saved.userAnswers || {}).length : 0;
+      const correct = saved?.stats?.correct || 0;
+      const wrong = saved?.stats?.wrong || 0;
+
+      const totalCurrent = saved?.currentQuestions?.length || (end - start);
+      const isCompleted = saved ? (solved >= totalCurrent && totalCurrent > 0) : false;
+
+      const label = startSetNo === endSetNo
+        ? `Deneme-${startSetNo}`
+        : `Deneme-${startSetNo}-${endSetNo}`;
+
+      const btn = document.createElement("button");
+      btn.className = `menu-btn ${isCompleted ? "locked" : ""}`;
+      btn.innerHTML = `
+        <strong>${label}</strong><br>
+        <small>${end - start} Soru | Çözülen ${solved} (Doğru ${correct} Yanlış ${wrong})</small>
+      `;
+
+      if (!isCompleted) {
+        btn.onclick = () => startSet(i, key, start, end);
+      }
+
+      menuGrid.appendChild(btn);
+    }
+
+    const wrongPool = getWrongQuestionsPool();
+
+    if (wrongPool.length > 0) {
+      const wrongBtn = document.createElement("button");
+      wrongBtn.className = "wrong-menu-btn";
+      wrongBtn.innerHTML = `
+        <strong>Yanlış Yapılan Sorular</strong><br>
+        <small>${wrongPool.length} Soru | Yeniden çöz</small>
+      `;
+      wrongBtn.onclick = openWrongQuestions;
+      menuGrid.appendChild(wrongBtn);
+    }
+  }
+
+  function openWrongQuestions() {
+    const pool = getWrongQuestionsPool();
+    if (!pool.length) return;
+
+    wrongQuestionsMode = true;
+    currentSetKey = storagePrefix() + "wrong_questions_state";
+
+    const saved = JSON.parse(localStorage.getItem(currentSetKey) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = pool.map((q, i) => ({
+        id: "wrong_" + i + "_" + Math.random().toString(36).slice(2, 8),
+        originalNo: i + 1,
+        q: q.q,
+        o: [...q.o],
+        c: q.c,
+        e: q.e || "",
+        isRetry: false,
+        retryFrom: null,
+        retryCount: 0,
+        answeredCorrectly: false
+      }));
+
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = "Yanlış Yapılan Sorular";
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function startSet(idx, key, start, end) {
+    wrongQuestionsMode = false;
+    currentSetKey = key;
+
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = questions.slice(start, end).map((q, i) => normalizeQuestion(q, start + i));
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function getQuestionTitle(q) {
+    return `Soru-${q.originalNo}: ${q.q}`;
+  }
+
+  function loadQuestion() {
+    const q = currentQuestions[currentIndex];
+    const progress = ((currentIndex + 1) / currentQuestions.length) * 100;
+
+    document.getElementById("progressBar").style.width = progress + "%";
+    document.getElementById("footerLeft").textContent = `Kalan: ${Math.max(currentQuestions.length - (currentIndex + 1), 0)}`;
+    document.getElementById("footerRight").textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById("questionText").textContent = getQuestionTitle(q);
+
+    const retryBadge = document.getElementById("retryBadge");
+    retryBadge.style.display = q.isRetry ? "block" : "none";
+
+    const optArea = document.getElementById("optionsArea");
+    const expArea = document.getElementById("explanationArea");
+    optArea.innerHTML = "";
+    expArea.style.display = "none";
+    expArea.innerHTML = "";
+
+    const letters = ["A", "B", "C", "D"];
+
+    q.o.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<strong>${letters[idx]})</strong> ${opt}`;
+
+      if (currentIndex <= solvedIndex) {
+        btn.disabled = true;
+        const userChoice = userAnswers[currentIndex];
+
+        if (idx === userChoice) {
+          if (userChoice === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          } else {
+            btn.classList.add("wrong");
+          }
+        }
+
+        if (wrongQuestionsMode) {
+          if (idx === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          }
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+          expArea.style.display = "block";
+        } else {
+          if (userChoice === q.c) {
+            expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+            expArea.style.display = "block";
+          } else if (q.isRetry) {
+            if (idx === q.c) {
+              btn.classList.add("correct");
+              btn.innerHTML += ` <span class="tick show">✔</span>`;
+            }
+            expArea.innerHTML = `<strong>Açıklama:</strong> ${q.e}`;
+            expArea.style.display = "block";
+          }
+        }
+      } else {
+        btn.onclick = () => selectOption(idx);
+      }
+
+      optArea.appendChild(btn);
+    });
+
+    document.getElementById("prevBtn").style.visibility = currentIndex > 0 ? "visible" : "hidden";
+    document.getElementById("nextBtn").style.visibility = currentIndex <= solvedIndex ? "visible" : "hidden";
+  }
+
+  function selectOption(idx) {
+    const q = currentQuestions[currentIndex];
+    const isCorrect = idx === q.c;
+
+    userAnswers[currentIndex] = idx;
+    solvedIndex = Math.max(solvedIndex, currentIndex);
+
+    if (isCorrect) {
+      stats.correct++;
+      q.answeredCorrectly = true;
+    } else {
+      stats.wrong++;
+
+      if (wrongQuestionsMode) {
+        // Yanlış Yapılan Sorular modunda soru yeniden eklenmez.
+      } else {
+        addWrongQuestionToPool(q);
+
+        if (!q.isRetry) {
+          const retryQuestion = {
+            ...q,
+            isRetry: true,
+            retryFrom: q.originalNo,
+            retryCount: 1
+          };
+
+          const insertIndex = Math.min(currentIndex + 5, currentQuestions.length);
+          currentQuestions.splice(insertIndex, 0, retryQuestion);
+        }
+      }
+    }
+
+    saveState();
+    loadQuestion();
+  }
+
+  function saveState() {
+    localStorage.setItem(currentSetKey, JSON.stringify({
+      currentQuestions,
+      currentIndex,
+      solvedIndex,
+      userAnswers,
+      stats
+    }));
+  }
+
+  function goForward() {
+    if (currentIndex < solvedIndex) {
+      currentIndex = solvedIndex + 1;
+    } else if (currentIndex < currentQuestions.length - 1) {
+      currentIndex++;
+    } else {
+      return showMenu();
+    }
+
+    saveState();
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      saveState();
+      loadQuestion();
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function showMenu() {
+    wrongQuestionsMode = false;
+    document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+    document.getElementById("quizContainer").style.display = "none";
+    document.getElementById("menuContainer").style.display = "block";
+    initMenu();
+    window.scrollTo(0, 0);
+  }
+
+  function clearAllStatistics() {
+    if (confirm("Tüm veriler sıfırlansın mı?")) {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+      });
+      initMenu();
+    }
+  }
+
+  function resetCurrentSet() {
+    if (confirm("Bu deneme sıfırlansın mı?")) {
+      localStorage.removeItem(currentSetKey);
+      showMenu();
+    }
+  }
+
+  initMenu();
+</script>
+</body>
+</html>
